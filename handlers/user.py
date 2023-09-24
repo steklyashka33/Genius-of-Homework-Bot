@@ -54,5 +54,10 @@ async def command_group(message: Message, bot: Bot):
 
 
 @user_router.message(Command("dice"))
-async def command_dice(message: Message, bot: Bot):
-    await bot.send_dice(message.from_user.id, emoji=DiceEmoji.DICE)
+async def command_dice(message: Message):
+    await message.answer_dice(emoji=DiceEmoji.DICE)
+
+
+@user_router.message(Command("basketball"))
+async def command_basketball(message: Message):
+    await message.answer_dice(emoji=DiceEmoji.BASKETBALL)
