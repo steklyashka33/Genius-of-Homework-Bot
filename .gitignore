@@ -1,3 +1,5 @@
 .env
 .gohw_bot_venv
 __pycache__
+*.sqlite
+*.db

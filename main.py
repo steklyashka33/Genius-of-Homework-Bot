@@ -9,7 +9,7 @@ from handlers.start import start_router
 from handlers.user import user_router
 from handlers.echo import echo_router
 
-from aiogram import Bot, Dispatcher, Router, types
+from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.filters.command import Command
 from aiogram.types import Message
