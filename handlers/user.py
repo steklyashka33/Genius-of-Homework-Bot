@@ -20,7 +20,7 @@ async def command_reply(message: Message) -> None:
     This handler receives messages with `/reply` command
     """
     await message.reply(f"Это ответ на сообщение.")
-    
+        
 
 @user_router.message(Command("sergey"))
 async def command_sergey(message: Message, bot: Bot):
@@ -28,7 +28,7 @@ async def command_sergey(message: Message, bot: Bot):
     sergey_chat = await bot.get_chat(sergey_id)
     await bot.send_message(sergey_id, f"Это сообщение адресовано вам от [{message.from_user.full_name}]({message.from_user.url}).", parse_mode="Markdown")
     await message.answer(f"Сообщение доставлено [{sergey_chat.first_name}](tg://user?id={sergey_id})", parse_mode="Markdown")
-    
+        
 
 @user_router.message(Command("cuddle"))
 async def command_cuddle(message: Message):
