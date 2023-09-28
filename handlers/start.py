@@ -8,7 +8,7 @@ start_router = Router()
 
 
 @start_router.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
+async def command_start(message: Message) -> None:
     """
     This handler receives messages with `/start` command
     """
@@ -19,5 +19,5 @@ async def command_start_handler(message: Message) -> None:
     # Bot instance: `bot.send_message(chat_id=message.chat.id, ...)`
     text = f"""\
 Привет, *{message.from_user.full_name}*!
-Я создан, чтобы помогать тебе с домашним заданием."""
+Я создан, чтобы подсказывать тебе с домашние задание."""
     await message.answer(text, parse_mode="Markdown", reply_markup=main)
