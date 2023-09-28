@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from os import getenv
 
 from handlers.start import start_router
-from handlers.user import user_router
+from handlers.bot_user import user_router
 from handlers.echo import echo_router
 
 from aiogram import Bot, Dispatcher
