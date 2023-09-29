@@ -15,16 +15,16 @@ class dbManager:
         self.cursor = self.connection.cursor()
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS "users" (
-            "id"    	INTEGER NOT NULL UNIQUE,
+            "user_id"    	INTEGER NOT NULL UNIQUE,
             "class_id"	INTEGER NOT NULL,
             "is_admin"   BLOB NOT NULL DEFAULT 0,
             "notification_of_tasks"	BLOB NOT NULL DEFAULT 0,
             "notification_time"	TEXT,
-            PRIMARY KEY("id")
+            PRIMARY KEY("user_id")
         ) WITHOUT ROWID;""")
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS "invitations" (
-            "id"	    INTEGER NOT NULL,
+            "user_id"	    INTEGER NOT NULL,
             "class_id"	INTEGER NOT NULL,
             "invite_by"	INTEGER NOT NULL
         );""")
@@ -87,10 +87,10 @@ class dbManager:
             "8"	TEXT
         );""")
 
-        class_cursor.execute("""CREATE TABLE IF NOT EXISTS "subjects" (
+        class_cursor.execute("""CREATE TABLE IF NOT EXISTS "groups" (
+            "user_id"	INTEGER,
             "subject"	INTEGER NOT NULL,
-            "sub_subject"	INTEGER,
-            PRIMARY KEY("sub_subject","subject")
+            "group"	INTEGER NOT NULL
         );""")
 
         class_cursor.execute("""CREATE TABLE "class_users" (
@@ -104,7 +104,7 @@ class dbManager:
             "date"	TEXT NOT NULL,
             "week"	INTEGER NOT NULL,
             "subject"	TEXT NOT NULL,
-            "sub_subject"	TEXT,
+            "group"	TEXT,
             "message_id"	INTEGER NOT NULL,
             "author_id"	INTEGER NOT NULL,
             "hide_time"	TEXT,
@@ -130,12 +130,18 @@ class dbManager:
                                       l8: str=None):
         """
         Запись/обновление дня в расписании.
-        Если всё выполнено удачно, то вырнёт True, иначе None.
-        day – 1-7
+        Если не существует класса, то вернёт -1.
+        Если day имеет значение не 1-6, то вернёт -2.
+        Если всё выполнено удачно, то вырнёт True.
+        day – 1-6
         """
 
+        # Проверка на существование класса.
         if not await self._check_existence_of_class(class_id):
-            return
+            return -1
+        
+        if not 1 <= day <= 6:
+            return -2
     
         connection_to_class = sql.connect(f"db/class_{class_id}.sqlite")
         class_cursor = connection_to_class.cursor()
@@ -164,13 +170,112 @@ class dbManager:
         connection_to_class.close()
         return True
     
+    async def get_all_subjects(self, class_id):
+        """Возращает все предметы в расписании."""
+
+        # Проверка на существование класса.
+        if not await self._check_existence_of_class(class_id):
+            return -1
+    
+        connection_to_class = sql.connect(f"db/class_{class_id}.sqlite")
+        class_cursor = connection_to_class.cursor()
+        
+        class_cursor.execute("""
+        SELECT "1" AS merged_value FROM schedule WHERE "1" IS NOT NULL
+        UNION
+        SELECT "2" AS merged_value FROM schedule WHERE "2" IS NOT NULL
+        UNION
+        SELECT "3" AS merged_value FROM schedule WHERE "3" IS NOT NULL
+        UNION
+        SELECT "4" AS merged_value FROM schedule WHERE "4" IS NOT NULL
+        UNION
+        SELECT "5" AS merged_value FROM schedule WHERE "5" IS NOT NULL
+        UNION
+        SELECT "6" AS merged_value FROM schedule WHERE "6" IS NOT NULL
+        UNION
+        SELECT "7" AS merged_value FROM schedule WHERE "7" IS NOT NULL
+        UNION
+        SELECT "8" AS merged_value FROM schedule WHERE "8" IS NOT NULL;
+    """)
+        subjects = class_cursor.fetchall()
+        connection_to_class.commit()
+        connection_to_class.close()
+        return [subject[0] for subject in subjects]
+    
+    async def get_schedule_for_day(self, class_id, day):
+        """
+        Возращает расписание на день.
+        Если не существует класса, то вернёт -1.
+        Если day имеет значение не 1-6, то вернёт -2.
+        Если всё выполнено удачно, то вырнёт True.
+        day – 1-6
+        """
+
+        # Проверка на существование класса.
+        if not await self._check_existence_of_class(class_id):
+            return -1
+        
+        if not 1 <= day <= 6:
+            return -2
+    
+        connection_to_class = sql.connect(f"db/class_{class_id}.sqlite")
+        class_cursor = connection_to_class.cursor()
+
+        class_cursor.execute("""SELECT * FROM "schedule" WHERE day=?;""", (day, ))
+        row = class_cursor.fetchone()
+        schedule_for_day = row[1:] # отрезаем номер дня 
+        
+        connection_to_class.commit()
+        connection_to_class.close()
+        return schedule_for_day
+    
+    async def get_schedule_for_next_day(self, class_id, day):
+        """
+        Возращает расписание на следующий день.
+        Первое значение это день
+        Если не существует класса, то вернёт -1.
+        Если day имеет значение не 1-6, то вернёт -2.
+        Если всё выполнено удачно, то вырнёт True.
+        day – 1-6
+        """
+
+        # Проверка на существование класса.
+        if not await self._check_existence_of_class(class_id):
+            return -1
+        
+        if not 1 <= day <= 6:
+            return -2
+    
+        connection_to_class = sql.connect(f"db/class_{class_id}.sqlite")
+        class_cursor = connection_to_class.cursor()
+
+        class_cursor.execute("""SELECT *
+            FROM schedule
+            WHERE day > ?
+            UNION ALL
+            SELECT *
+            FROM schedule
+            WHERE day = (SELECT MIN(day) FROM schedule)
+            LIMIT 1
+        ;""", (day, ))
+        schedule_for_next_day = class_cursor.fetchone()
+        
+        connection_to_class.commit()
+        connection_to_class.close()
+        return schedule_for_next_day
+
     def exit(self) -> None:
         self.connection.close()
 
 async def main() -> None:
     db = dbManager()
     class_id = await db.create_class(9, "А", 36, "Владимир")
-    await db.change_schedule_for_day(1, 3, "rus", "eng", "math", None, None, "information")
+    await db.change_schedule_for_day(1, 1, "rus", "eng", "math", None, None, "information")
+    await db.change_schedule_for_day(1, 3, "litra", "eng", "math", None, "information")
+    await db.change_schedule_for_day(1, 4, "technology", "eng", "math", None, None, "information")
+    await db.change_schedule_for_day(1, 6, "class hour")
+    print(await db.get_schedule_for_day(1, 1))
+    print(await db.get_schedule_for_next_day(1, 4))
 
 if __name__ == "__main__":
     asyncio.run(main())
