@@ -16,7 +16,7 @@ class dbManager:
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS "users" (
             "user_id"    	INTEGER NOT NULL UNIQUE,
-            "class_id"	INTEGER NOT NULL,
+            "class_id"	INTEGER,
             "is_admin"   BLOB NOT NULL DEFAULT 0,
             "notification_of_tasks"	BLOB NOT NULL DEFAULT 0,
             "notification_time"	TEXT,
@@ -24,9 +24,10 @@ class dbManager:
         ) WITHOUT ROWID;""")
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS "invitations" (
-            "user_id"	    INTEGER NOT NULL,
+            "user_id"   INTEGER NOT NULL,
             "class_id"	INTEGER NOT NULL,
-            "invite_by"	INTEGER NOT NULL
+            "invited_by"	INTEGER NOT NULL,
+	        PRIMARY KEY("user_id","class_id")
         );""")
         
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS "all_classes" (
@@ -52,9 +53,93 @@ class dbManager:
         else:
             return False
 
+    async def _check_existence_of_user(self, user_id):
+        """Проверка на существование пользователя в бд."""
+
+        self.cursor.execute("""SELECT user_id FROM "users" WHERE user_id=?""", (user_id, ))
+        result = self.cursor.fetchone()
+
+        if result is None:
+            return False
+        else:
+            return True
+
+    async def save_user_to_database(self, user_id):
+        """
+        Добавляет пользователя в бд.
+        Если он уже был в бд, то возращает -1.
+        Если всё уcпешно, то возращает True.
+        """
+
+        if not self._check_existence_of_user(user_id):
+            self.cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?);", (user_id, ))
+            self.connection.commit()
+            return True
+        else:
+            return -1
+
+    async def get_user_class_id(self, user_id):
+        """
+        Возращает class_id пользователя.
+        Если пользователя нет в бд, то возращает -1.
+        """
+        
+        # Проверка на существование пользователя.
+        if not await self._check_existence_of_user(user_id):
+            return -1
+        
+        self.cursor.execute("SELECT class_id FROM users WHERE user_id = ?;", (user_id, ))
+        class_id = self.cursor.fetchone()[0] # Получаем само значение.
+
+        return class_id
+
+    async def get_all_user_invitations(self, user_id):
+        """Возращает все приглашения пользователю."""
+
+        self.cursor.execute("""SELECT * FROM "invitations" WHERE user_id=?""", (user_id, ))
+        result = self.cursor.fetchall()
+
+        return result
+
+    async def make_invitation_to_user(self, user_id, class_id, invited_by):
+        """
+        Создаёт приглашение пользователю.
+        Если класса не существует, то вернёт -1.
+        Если пользователь уже в классе, то вернёт -2.
+        Если приглашающего пользователя нет в бд, то вернёт -3.
+        Если такие данные уже есть в бд, то вернёт -4.
+        Если всё уcпешно, то возращает True.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check_existence_of_class(class_id):
+            return -1
+        
+        # Проверка на не пренадлежание пользователя к какому-либо классу. 
+        if await self._check_existence_of_user(user_id):
+            user_class_id = await self.get_user_class_id(user_id)
+            if not user_class_id is None:
+                return -2
+        
+        # Проверка на существование приглашающего пользователя.
+        if not await self._check_existence_of_user(invited_by):
+            return -3
+        
+        try:
+            self.cursor.execute("""INSERT INTO "invitations"
+                (user_id, class_id, invited_by)
+                VALUES
+                (?, ?, ?)""", (user_id, class_id, invited_by))
+            self.connection.commit()
+        except sql.IntegrityError as e:
+            return -4
+
+        return True
+
     async def create_class(self, class_: int, letter: str, school: int, city: str) -> int:
         """Создаёт класс и возращает id этого класса если такого не было, иначе None."""
         
+        # Проверка на отсутствие существования класса с данными значениями.
         self.cursor.execute("""SELECT class_id FROM "all_classes" WHERE 
             class = ? AND
             letter = ? AND
@@ -94,8 +179,9 @@ class dbManager:
         );""")
 
         class_cursor.execute("""CREATE TABLE "class_users" (
-            "id"	INTEGER NOT NULL UNIQUE,
-            "role"	INTEGER NOT NULL DEFAULT 1,
+            "id"		INTEGER NOT NULL UNIQUE,
+            "role"		INTEGER NOT NULL DEFAULT 1,
+            "invited_by"  INTEGER NOT NULL,
             PRIMARY KEY("id")
         );""")
 
@@ -205,6 +291,7 @@ class dbManager:
     async def get_schedule_for_day(self, class_id, day):
         """
         Возращает расписание на день.
+        Первое значение это день.
         Если не существует класса, то вернёт -1.
         Если day имеет значение не 1-6, то вернёт -2.
         Если всё выполнено удачно, то вырнёт True.
@@ -222,8 +309,7 @@ class dbManager:
         class_cursor = connection_to_class.cursor()
 
         class_cursor.execute("""SELECT * FROM "schedule" WHERE day=?;""", (day, ))
-        row = class_cursor.fetchone()
-        schedule_for_day = row[1:] # отрезаем номер дня 
+        schedule_for_day = class_cursor.fetchone()
         
         connection_to_class.commit()
         connection_to_class.close()
@@ -232,7 +318,7 @@ class dbManager:
     async def get_schedule_for_next_day(self, class_id, day):
         """
         Возращает расписание на следующий день.
-        Первое значение это день
+        Первое значение это день.
         Если не существует класса, то вернёт -1.
         Если day имеет значение не 1-6, то вернёт -2.
         Если всё выполнено удачно, то вырнёт True.
@@ -274,8 +360,8 @@ async def main() -> None:
     await db.change_schedule_for_day(1, 3, "litra", "eng", "math", None, "information")
     await db.change_schedule_for_day(1, 4, "technology", "eng", "math", None, None, "information")
     await db.change_schedule_for_day(1, 6, "class hour")
-    print(await db.get_schedule_for_day(1, 1))
-    print(await db.get_schedule_for_next_day(1, 4))
+    print(await db.make_invitation_to_user(123, 1, 2))
+    print(await db.make_invitation_to_user(12345, 1, 123))
 
 if __name__ == "__main__":
     asyncio.run(main())
