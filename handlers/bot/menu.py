@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f, invert_f
 from aiogram.types import Message
 
 from aiogram_dialog import DialogManager
@@ -20,7 +20,7 @@ async def open_menu(message: Message) -> None:
     await message.answer(text, parse_mode="Markdown", reply_markup=main)
 
 
-@menu_router.message(F.text == "Домашнее задание📕", Command("homework"))
+@menu_router.message(or_f(F.text == "Домашнее задание📕", Command("homework")))
 async def command_homework(message: Message, dialog_manager: DialogManager) -> None:
     db = DBManager()
 
@@ -47,12 +47,12 @@ async def command_homework(message: Message, dialog_manager: DialogManager) -> N
         text = f"""Дз."""
         await message.answer(text, parse_mode="Markdown")
 
-@menu_router.message(F.text == "Профиль👤")
+@menu_router.message(or_f(F.text == "Профиль👤", Command("profile")))
 async def command_profile(message: Message) -> None:
     text = f"""Профиль."""
     await message.answer(text, parse_mode="Markdown")
 
-@menu_router.message(F.text == "Информацияℹ")
+@menu_router.message(or_f(F.text == "Информацияℹ", Command("info")))
 async def command_info(message: Message) -> None:
     text = f"""Это бот лучший в мире. \nНе бит, не крашен. \nОт души отрываю!"""
     await message.answer(text, parse_mode="Markdown")

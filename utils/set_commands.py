@@ -8,7 +8,7 @@ async def set_commands(bot: Bot):
     await set_bot_admin_commands(bot)
 
 async def set_bot_commands(bot: Bot):
-    commands = [
+    bot_commands = [
         BotCommand(
             command="start",
             description="Старт"
@@ -21,12 +21,20 @@ async def set_bot_commands(bot: Bot):
             command="homework",
             description="Домашнее задание"
         ),
+        BotCommand(
+            command="profile",
+            description="Профиль"
+        ),
+        BotCommand(
+            command="info",
+            description="Информация"
+        ),
         # BotCommand(
         #     command="",
         #     description=""
         # ),
     ]
-    await bot.set_my_commands(commands, BotCommandScopeDefault())
+    await bot.set_my_commands(bot_commands, BotCommandScopeDefault())
 
 async def set_bot_admin_commands(bot: Bot):
     admin_commads = [
