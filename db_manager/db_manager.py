@@ -1,21 +1,26 @@
-import sqlite3 as sql
-from models import Models
-from schedule import Schedule
-from db_connector import DBConnector
-from checks import Checks
-from invitation import Invitation
-from users import Users
+from .singleton import Singleton
+from .base_class import BaseClass
 
-# DBConnector унаследован в Models
-class DBManager(DBConnector):
+from .models import Models
+from .schedule import Schedule
+from .check import Check
+from .invitation import Invitation
+from .user import User
+from .class_ import Class
+from .roles_config import Roles
+
+
+class DBManager(Singleton, BaseClass):
     def __init__(self) -> None:
         super().__init__()
         
         self.schedule = Schedule()
-        self.models = Models()
-        self.checks = Checks()
-        self.users = Users()
         self.invitation = Invitation()
+        self.check = Check()
+        self.user = User()
+        self.class_ = Class()
+        self.roles = Roles()
         
         # Создаём все таблицы в базе данных.
-        self.models._create_db()
+        models = Models()
+        models.create_db()

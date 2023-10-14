@@ -2,9 +2,11 @@ import asyncio
 from atexit import register
 import sqlite3 as sql
 from typing import Dict
-from _base_class import BaseClass
 
-class DBConnector(BaseClass):
+from .singleton import Singleton
+
+
+class DBConnector(Singleton):
     def __init__(self) -> None:
         self.connection = sql.connect("db/db.sqlite")
         self.cursor = self.connection.cursor()
@@ -12,11 +14,14 @@ class DBConnector(BaseClass):
         
         register(self._close_connection)
     
-    async def get_class_connection(self, class_id: int) -> sql.Connection:
+    async def get_connection_to_class(self, class_id: int) -> sql.Connection:
+        """Возвращает подключение к классу."""
+
         if not class_id in self._connections_to_classes:
             await self._connect_to_class(class_id)
             
-        return self._connections_to_classes[ class_id ]
+        connection_to_class: sql.Connection = self._connections_to_classes[ class_id ]
+        return connection_to_class
     
     async def _connect_to_class(self, class_id: int):
         connection_to_class = sql.connect(f"db/class_{class_id}.sqlite")
@@ -30,7 +35,7 @@ class DBConnector(BaseClass):
 
 async def main() -> None:
     db_connector = DBConnector()
-    await db_connector.get_class_connection(1)
+    await db_connector.get_connection_to_class(1)
 
 if __name__ == "__main__":
     asyncio.run(main())

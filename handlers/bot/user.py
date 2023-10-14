@@ -3,6 +3,11 @@ from aiogram.enums.dice_emoji import DiceEmoji
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from aiogram_dialog import DialogManager
+
+from db_manager import DBManager
+
+db = DBManager()
 user_router = Router()
 
 
@@ -42,15 +47,6 @@ async def command_cuddle(message: Message):
     except:
         # await message.delete()
         await message.answer(f'[{your_name}]({your_url}) обнял-приподнял всех друзей', parse_mode="Markdown")
-
-
-@user_router.message(Command("group"))
-async def command_group(message: Message, bot: Bot):
-    user_channel_status = await bot.get_chat_member(chat_id="@crypt0scamm", user_id=message.from_user.id)
-    if user_channel_status["status"] != 'left':
-        pass
-    else:
-        await bot.send_message(message.from_user.id, 'text if not in group')
 
 
 @user_router.message(Command("dice"))

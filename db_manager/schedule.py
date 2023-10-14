@@ -1,12 +1,11 @@
-import sqlite3 as sql
-from db_connector import DBConnector
-from checks import Checks
+from .base_class import BaseClass
+from .check import Check
 
 
-class Schedule(DBConnector):
+class Schedule(BaseClass):
     def __init__(self) -> None:
         super().__init__()
-        self.checks = Checks()
+        self._check = Check()
         
     async def change_schedule_for_day(self, 
                                       class_id: int, 
@@ -22,19 +21,20 @@ class Schedule(DBConnector):
         """
         Запись/обновление дня в расписании.
         Если не существует класса, то вернёт -1.
-        Если day имеет значение не 1-6, то вернёт -2.
+        Если day имеет значение не 1-7, то вернёт -2.
         Если всё выполнено удачно, то вырнёт True.
-        day – 1-6
+        day – 1-7
         """
 
         # Проверка на существование класса.
-        if not await self.checks.check_existence_of_class(class_id):
+        if not await self._check.check_existence_of_class(class_id):
             return -1
         
-        if not 1 <= day <= 6:
+        if not 1 <= day <= 7:
             return -2
     
-        connection_to_class = await self.get_class_connection(class_id)
+        # Получение подключения к классу.
+        connection_to_class = await self._get_connection_to_class(class_id)
         class_cursor = connection_to_class.cursor()
         
         class_cursor.execute("""SELECT day FROM "schedule" WHERE day = ?""", (day, ))
@@ -60,14 +60,39 @@ class Schedule(DBConnector):
         connection_to_class.commit()
         return True
     
-    async def get_all_subjects(self, class_id: int):
-        """Возращает все предметы в расписании."""
+    async def get_all_recorded_days(self, class_id: int):
+        """
+        Возращает все дни в расписании.
+        Если не существует класса, то вернёт -1.
+        """
 
         # Проверка на существование класса.
-        if not await self.checks.check_existence_of_class(class_id):
+        if not await self._check.check_existence_of_class(class_id):
             return -1
     
-        connection_to_class = await self.get_class_connection(class_id)
+        # Получение подключения к классу.
+        connection_to_class = await self._get_connection_to_class(class_id)
+        class_cursor = connection_to_class.cursor()
+
+        # Получение всех записанных дней в расписании.
+        class_cursor.execute("""SELECT day FROM "schedule" """)
+        result = class_cursor.fetchall()
+        all_recorded_days = [value[0] for value in result]
+
+        return all_recorded_days
+
+    async def get_all_subjects(self, class_id: int):
+        """
+        Возращает все предметы в расписании.
+        Если не существует класса, то вернёт -1.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+    
+        # Получение подключения к классу.
+        connection_to_class = await self._get_connection_to_class(class_id)
         class_cursor = connection_to_class.cursor()
         
         class_cursor.execute("""
@@ -93,22 +118,23 @@ class Schedule(DBConnector):
     
     async def get_schedule_for_day(self, class_id: int, day: int):
         """
-        Возращает расписание на день.
+        Возращает расписание на день вместе с днём.
         Первое значение это день.
         Если не существует класса, то вернёт -1.
-        Если day имеет значение не 1-6, то вернёт -2.
+        Если day имеет значение не 1-7, то вернёт -2.
         Если всё выполнено удачно, то вырнёт True.
-        day – 1-6
+        day – 1-7
         """
 
         # Проверка на существование класса.
-        if not await self.checks.check_existence_of_class(class_id):
+        if not await self._check.check_existence_of_class(class_id):
             return -1
         
-        if not 1 <= day <= 6:
+        if not 1 <= day <= 7:
             return -2
     
-        connection_to_class = await self.get_class_connection(class_id)
+        # Получение подключения к классу.
+        connection_to_class = await self._get_connection_to_class(class_id)
         class_cursor = connection_to_class.cursor()
 
         class_cursor.execute("""SELECT * FROM "schedule" WHERE day=?;""", (day, ))
@@ -122,19 +148,20 @@ class Schedule(DBConnector):
         Возращает расписание на следующий день.
         Первое значение это день.
         Если не существует класса, то вернёт -1.
-        Если day имеет значение не 1-6, то вернёт -2.
+        Если day имеет значение не 1-7, то вернёт -2.
         Если всё выполнено удачно, то вырнёт True.
-        day – 1-6
+        day – 1-7
         """
 
         # Проверка на существование класса.
-        if not await self.checks.check_existence_of_class(class_id):
+        if not await self._check.check_existence_of_class(class_id):
             return -1
         
-        if not 1 <= day <= 6:
+        if not 1 <= day <= 7:
             return -2
     
-        connection_to_class = await self.get_class_connection(class_id)
+        # Получение подключения к классу.
+        connection_to_class = await self._get_connection_to_class(class_id)
         class_cursor = connection_to_class.cursor()
 
         class_cursor.execute("""SELECT *

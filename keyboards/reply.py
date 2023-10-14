@@ -2,11 +2,11 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
 
 main_kb = [
     [
-        KeyboardButton(text="hi"),
-        KeyboardButton(text="Как дела?"),
+        KeyboardButton(text="Домашнее задание📕"),
      ],
     [
-        KeyboardButton(text="Info"),
+        KeyboardButton(text="Профиль👤"),
+        KeyboardButton(text="Информацияℹ"),
     ]
 ]
 
