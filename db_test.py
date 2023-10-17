@@ -1,18 +1,12 @@
 import asyncio
 import os, sys
 
-# import DBManager
-main_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(1, main_dir)
 from db_manager import DBManager
-from db_manager.models import Models
-
 
 
 async def main() -> None:
     db = DBManager()
-    models = Models()
-    class_id = await models.create_class(9, "А", 36, "Владимир")
+    class_id = await db.class_.create_class(0, 9, "А", 36, "Владимир")
     await db.schedule.change_schedule_for_day(1, 1, "rus", "eng", "math", None, None, "information")
     await db.schedule.change_schedule_for_day(1, 3, "litra", "eng", "math", None, "information")
     await db.schedule.change_schedule_for_day(1, 4, "technology", "eng", "math", None, None, "information")

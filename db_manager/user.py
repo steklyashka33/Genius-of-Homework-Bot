@@ -1,10 +1,9 @@
-from .base_class import BaseClass
+from .connect import ConnectToDB, ConnectToClass
 from .check import Check
 
 
-class User(BaseClass):
+class User():
     def __init__(self) -> None:
-        super().__init__()
         self._check = Check()
     
     async def add_user_to_database(self, user_id: int):
@@ -14,21 +13,41 @@ class User(BaseClass):
         Если всё уcпешно, то возращает True.
         """
 
-        if not await self._check.check_existence_of_user(user_id):
-            self._cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?);", (user_id, ))
-            self._connection.commit()
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            if not await self._check.check_existence_of_user(user_id):
+                # Добавляет пользователя в бд.
+                await db.cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?);", (user_id, ))
+                return True
+            else:
+                return -1
+    
+    async def make_user_administrator(self, user_id: int):
+        """
+        Делает пользователя администратором.
+        Если пользователя нет в бд, то возращает -1.
+        Если всё уcпешно, то возращает True.
+        """
+        
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            if not await self._check.check_existence_of_user(user_id):
+                return -1
+            
+            # Делает пользователя администратором.
+            await db.cursor.execute("UPDATE users SET is_admin=1 WHERE user_id=?;", (user_id, ))
             return True
-        else:
-            return -1
     
     async def get_all_bot_admin(self):
         """Возвращает все id админов бота."""
 
-        # Получение всех id администраторов.
-        self._cursor.execute("""SELECT user_id FROM "users" WHERE is_admin=1""")
-        admin_ids = [row[0] for row in self._cursor.fetchall()]
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Получение всех id администраторов.
+            await db.cursor.execute("""SELECT user_id FROM "users" WHERE is_admin=1""")
+            admin_ids = [row[0] for row in await db.cursor.fetchall()]
 
-        return admin_ids
+            return admin_ids
 
     async def get_user_class_id(self, user_id: int):
         """
@@ -40,10 +59,12 @@ class User(BaseClass):
         if not await self._check.check_existence_of_user(user_id):
             return -1
         
-        self._cursor.execute("SELECT class_id FROM users WHERE user_id = ?;", (user_id, ))
-        class_id = self._cursor.fetchone()[0] # Получаем само значение.
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            await db.cursor.execute("SELECT class_id FROM users WHERE user_id = ?;", (user_id, ))
+            class_id = await db.cursor.fetchone()[0] # Получаем само значение.
 
-        return class_id
+            return class_id
     
     async def get_user_class_data(self, user_id: int):
         """
@@ -62,9 +83,9 @@ class User(BaseClass):
             return -2
         
         from .class_ import Class
-        self._class = Class()
+        _class = Class()
         
         # Получение данных класса.
-        class_data = await self._class.get_class_data(user_class_id)
+        class_data = await _class.get_class_data(user_class_id)
 
         return class_data

@@ -5,6 +5,8 @@ import sys
 from dotenv import load_dotenv
 from os import getenv
 
+from db_manager import DBManager
+
 from handlers.bot.start import start_router
 from handlers.bot.admin import bot_admin_router
 from handlers.bot.menu import menu_router
@@ -48,8 +50,10 @@ async def main() -> None:
         schedule_router,
         echo_router
     )
-
     setup_dialogs(dp)
+
+    db = DBManager()
+    await db.create_db()
     
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
     bot = Bot(TOKEN, parse_mode=ParseMode.HTML)

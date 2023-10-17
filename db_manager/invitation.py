@@ -2,11 +2,10 @@ import sqlite3 as sql
 
 from .check import Check
 from .user import User
+from .connect import ConnectToDB, ConnectToClass
 
-from .base_class import BaseClass
 
-
-class Invitation(BaseClass):
+class Invitation():
     def __init__(self) -> None:
         super().__init__()
         self._check = Check()
@@ -15,8 +14,10 @@ class Invitation(BaseClass):
     async def get_all_user_invitations(self, user_id: int):
         """Возращает все приглашения пользователю."""
 
-        self._cursor.execute("""SELECT * FROM "invitations" WHERE user_id=?""", (user_id, ))
-        result = self._cursor.fetchall()
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            await db.cursor.execute("""SELECT * FROM "invitations" WHERE user_id=?""", (user_id, ))
+            result = await db.cursor.fetchall()
 
         return result
 
@@ -44,13 +45,14 @@ class Invitation(BaseClass):
         if not await self._check.check_existence_of_user(invited_by):
             return -3
         
-        try:
-            self._cursor.execute("""INSERT INTO "invitations"
-                (user_id, class_id, invited_by)
-                VALUES
-                (?, ?, ?)""", (user_id, class_id, invited_by))
-            self._connection.commit()
-        except sql.IntegrityError as e:
-            return -4
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            try:
+                await db.cursor.execute("""INSERT INTO "invitations"
+                    (user_id, class_id, invited_by)
+                    VALUES
+                    (?, ?, ?)""", (user_id, class_id, invited_by))
+            except sql.IntegrityError as e:
+                return -4
 
         return True

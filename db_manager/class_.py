@@ -1,12 +1,13 @@
 from typing import Union
-from .base_class import BaseClass
+
 from .models import Models
 from .check import Check
 from .user import User
 from .roles_config import Roles
+from .connect import ConnectToDB, ConnectToClass
 
 
-class Class(BaseClass):
+class Class():
     def __init__(self) -> None:
         super().__init__()
         self._models = Models()
@@ -36,30 +37,28 @@ class Class(BaseClass):
         else: # Пользователя нет в бд.
             return -1
         
-        # Получение подключения к классу.
-        connection_to_class = await self._get_connection_to_class(class_id)
-        class_cursor = connection_to_class.cursor()
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            # Проверка, был ли пользователь ранее в данном классе.
+            await db_class.cursor.execute("""SELECT id FROM "class_users" WHERE id = ?;""", (user_id,))
+            was_user_in_class = bool(await db_class.cursor.fetchone())
 
-        # Проверка, был ли пользователь ранее в данном классе.
-        class_cursor.execute("""SELECT id FROM "class_users" WHERE id = ?;""", (user_id,))
-        was_user_in_class = bool(class_cursor.fetchone())
-
-        # Пользователь был ранее в данном классе.
-        if was_user_in_class:
-            # Удаление данных о пользователе с последующим добавлением в класс 
-            class_cursor.execute("""DELETE FROM "class_users" WHERE id = ?;""", (user_id, ))
-            
-        # Добавление пользователя в класс.
-        class_cursor.execute("""INSERT INTO "class_users"
-                            (id, invited_by)
-                            VALUES
-                            (?, ?)""", (user_id, invited_by))
+            # Пользователь был ранее в данном классе.
+            if was_user_in_class:
+                # Удаление данных о пользователе с последующим добавлением в класс 
+                await db_class.cursor.execute("""DELETE FROM "class_users" WHERE id = ?;""", (user_id, ))
+                
+            # Добавление пользователя в класс.
+            await db_class.cursor.execute("""INSERT INTO "class_users"
+                                (id, invited_by)
+                                VALUES
+                                (?, ?)""", (user_id, invited_by))
         
-        # Обновление class_id у пользователя.
-        self._cursor.execute("""UPDATE "users" SET class_id = ? WHERE user_id = ?;""", (class_id, user_id))
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Обновление class_id у пользователя.
+            await db.cursor.execute("""UPDATE "users" SET class_id = ? WHERE user_id = ?;""", (class_id, user_id))
         
-        connection_to_class.commit()
-        self._connection.commit()
         return True
 
     async def remove_user_from_class(self, user_id: int, class_id: int, deleted_by: int, comment_on_deletion: str):
@@ -89,21 +88,19 @@ class Class(BaseClass):
         if not await self._check.check_existence_of_user(deleted_by):
             return -4
         
-        # Получение подключения к классу.
-        connection_to_class = await self._get_connection_to_class(class_id)
-        class_cursor = connection_to_class.cursor()
-
-        # Установление кем был удалён пользователь и комментарий к удалению у данных удалённого пользователя. 
-        class_cursor.execute(""""UPDATE "class_users" SET 
-                             deleted_by = ?, 
-                             comment_on_deletion = ?,
-                             WHERE user_id = ?;""", (deleted_by, comment_on_deletion, user_id))
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            # Установление кем был удалён пользователь и комментарий к удалению. 
+            await db_class.cursor.execute(""""UPDATE "class_users" SET 
+                                deleted_by = ?, 
+                                comment_on_deletion = ?,
+                                WHERE user_id = ?;""", (deleted_by, comment_on_deletion, user_id))
         
-        # Обновление class_id пользователя на None.
-        self._cursor.execute("""UPDATE "users" SET class_id = ? WHERE user_id = ?;""", (None, user_id))
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Обновление class_id пользователя на None.
+            await db.cursor.execute("""UPDATE "users" SET class_id = ? WHERE user_id = ?;""", (None, user_id))
         
-        connection_to_class.commit()
-        self._connection.commit()
         return True
 
     async def change_user_role(self, user_id: int, class_id: int, role: int) -> Union[int, bool]:
@@ -133,14 +130,11 @@ class Class(BaseClass):
         if not role in self._roles.role_names_dict.keys():
             return -4
         
-        # Получение подключения к классу.
-        connection_to_class = await self._get_connection_to_class(class_id)
-        class_cursor = connection_to_class.cursor()
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            # Обновление class_id у пользователя.
+            await db_class.cursor.execute("""UPDATE "class_users" SET role = ? WHERE id = ?;""", (role, user_id))
         
-        # Обновление class_id у пользователя.
-        class_cursor.execute("""UPDATE "class_users" SET role = ? WHERE id = ?;""", (role, user_id))
-        
-        connection_to_class.commit()
         return True
 
     async def get_class_data(self, class_id: int):
@@ -153,9 +147,11 @@ class Class(BaseClass):
         if not await self._check.check_existence_of_class(class_id):
             return -1
         
-        # Получение данных класса.
-        self._cursor.execute("""SELECT * FROM "all_classes" WHERE class_id = ?""", (class_id,))
-        class_data = self._cursor.fetchone()[1:]
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Получение данных класса.
+            await db.cursor.execute("""SELECT * FROM "all_classes" WHERE class_id = ?""", (class_id,))
+            class_data = await db.cursor.fetchone()[1:]
 
         return class_data
 
