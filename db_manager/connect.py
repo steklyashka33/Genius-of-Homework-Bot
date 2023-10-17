@@ -1,7 +1,7 @@
 from typing import Self
 import aiosqlite as sql
 
-from config import DB_PATH, CLASS_PATH
+from configs.config import DB_PATH, CLASS_PATH
 
 
 class ConnectToDB:

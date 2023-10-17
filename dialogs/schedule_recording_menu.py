@@ -8,7 +8,8 @@ from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.kbd import Button, Cancel, Start, Next, Back, Select, Group, Row, Column
 from aiogram_dialog.widgets.input.text import TextInput
 
-from config import Week, Subjects
+from configs.week_config import Week
+from configs.subjects_config import Subjects
 from db_manager import DBManager
 
 class ScheduleRecordingMenu(StatesGroup):

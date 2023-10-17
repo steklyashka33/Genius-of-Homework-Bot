@@ -3,7 +3,6 @@ import logging
 import sys
 
 from dotenv import load_dotenv
-from os import getenv
 
 from db_manager import DBManager
 
@@ -26,12 +25,11 @@ from aiogram.filters.state import StatesGroup, State
 
 from aiogram_dialog import Dialog, Window, setup_dialogs, DialogManager
 
-from utils.set_commands import set_commands
+from utils.set_commands import Commands
+from utils.get_bot import MyBot
 
 # Load .env file
 load_dotenv()
-# Bot token can be obtained via https://t.me/BotFather
-TOKEN = getenv("BOT_TOKEN")
 
 
 async def main() -> None:
@@ -43,22 +41,23 @@ async def main() -> None:
         start_router,
         create_class_menu,
         schedule_recording_menu,
-        bot_admin_router,
         menu_router,
         user_router,
         class_control_router,
         schedule_router,
+        bot_admin_router,
         echo_router
     )
     setup_dialogs(dp)
 
+    # Создание всех таблиц в базе данных.
     db = DBManager()
     await db.create_db()
     
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
-    bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+    bot = MyBot().bot
     # Set commands
-    await set_commands(bot)
+    await Commands.set_commands(bot)
     # And the run events dispatching
     await dp.start_polling(bot)
 
@@ -68,4 +67,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info(f"Exit")
+        # create logger
+        logger = logging.getLogger("app")
+        logger.setLevel(logging.INFO)
+        # logger.info(f"Exit")

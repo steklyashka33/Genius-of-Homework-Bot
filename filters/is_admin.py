@@ -6,6 +6,7 @@ from db_manager import DBManager
 db = DBManager()
 
 class IsAdmin(Filter):
+    """Возвращает является ли пользователь администратором."""
 
     async def __call__(self, message: Message) -> bool:
         all_bot_admin = await db.user.get_all_bot_admin()

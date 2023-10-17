@@ -1,6 +1,6 @@
 from .connect import ConnectToDB, ConnectToClass
 
-class Check():
+class Check:
     async def check_existence_of_class(self, class_id: int):
         """Проверяет существование класса."""
         

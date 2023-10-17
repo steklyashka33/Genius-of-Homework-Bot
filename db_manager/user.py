@@ -26,6 +26,7 @@ class User():
         """
         Делает пользователя администратором.
         Если пользователя нет в бд, то возращает -1.
+        Если пользователь уже является администратором, то возращает -2.
         Если всё уcпешно, то возращает True.
         """
         
@@ -34,8 +35,31 @@ class User():
             if not await self._check.check_existence_of_user(user_id):
                 return -1
             
+            if user_id in await self.get_all_bot_admin():
+                return -2
+            
             # Делает пользователя администратором.
             await db.cursor.execute("UPDATE users SET is_admin=1 WHERE user_id=?;", (user_id, ))
+            return True
+    
+    async def log_out_of_make_user_administrator(self, user_id: int):
+        """
+        Отбирает права администратора у пользователя.
+        Если пользователя нет в бд, то возращает -1.
+        Если пользователь не является администратором, то возращает -2.
+        Если всё уcпешно, то возращает True.
+        """
+        
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            if not await self._check.check_existence_of_user(user_id):
+                return -1
+            
+            if not user_id in await self.get_all_bot_admin():
+                return -2
+            
+            # Отбирает права администратора у пользователя.
+            await db.cursor.execute("UPDATE users SET is_admin=0 WHERE user_id=?;", (user_id, ))
             return True
     
     async def get_all_bot_admin(self):
@@ -65,6 +89,17 @@ class User():
             class_id = await db.cursor.fetchone()[0] # Получаем само значение.
 
             return class_id
+    
+    async def get_all_class_members(self):
+        """Возвращает все id пользователей состоящих в классе."""
+
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Получение всех id пользователей состоящих в классе.
+            await db.cursor.execute("""SELECT user_id FROM "users" WHERE class_id IS NOT NULL""")
+            user_ids = [row[0] for row in await db.cursor.fetchall()]
+
+            return user_ids
     
     async def get_user_class_data(self, user_id: int):
         """

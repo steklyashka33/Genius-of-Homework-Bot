@@ -6,7 +6,8 @@ from .check import Check
 from .invitation import Invitation
 from .user import User
 from .class_ import Class
-from .roles_config import Roles
+
+from configs.roles_config import Roles
 
 
 class DBManager(Singleton):
@@ -19,7 +20,7 @@ class DBManager(Singleton):
         self.roles = Roles()
 
     async def create_db(self):
-        """Создаём все таблицы в базе данных."""
+        """Создание всех таблиц в базе данных."""
 
         models = Models()
         await models.create_db()

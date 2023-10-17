@@ -3,13 +3,13 @@ from typing import Union
 from .models import Models
 from .check import Check
 from .user import User
-from .roles_config import Roles
 from .connect import ConnectToDB, ConnectToClass
+
+from configs.roles_config import Roles
 
 
 class Class():
     def __init__(self) -> None:
-        super().__init__()
         self._models = Models()
         self._check = Check()
         self._user = User()
@@ -103,39 +103,62 @@ class Class():
         
         return True
 
-    async def change_user_role(self, user_id: int, class_id: int, role: int) -> Union[int, bool]:
+    async def change_user_role(self, user_id: int, role: int) -> Union[int, bool]:
         """
         Изменяет роль пользователя.
         Если нет пользователя в бд, то возвращает -1.
-        Если класса не существует, то вернёт -2.
-        Если пользователь не состоит в данном классе, то возвращает -3.
-        Если не существует данной роли, то вернёт -4.
+        Если пользователь не состоит в классе, то возвращает -2.
+        Если не существует данной роли, то вернёт -3.
         Если всё уcпешно, то возращает True.
         """
-
-        # Проверка на существование класса.
-        if not await self._check.check_existence_of_class(class_id):
-            return -2
         
         # Проверка на существование пользователя.
-        if await self._check.check_existence_of_user(user_id):
-            # Проверка на пренадлежание пользователя к данному классу. 
-            user_class_id = await self._user.get_user_class_id(user_id)
-            if not user_class_id == class_id:
-                return -3
-        else: # Пользователя нет в бд.
+        if not await self._check.check_existence_of_user(user_id):
             return -1
+        
+        # Получение класс в котором состоит пользователь.
+        user_class_id = await self._user.get_user_class_id(user_id)
+        
+        # Проверка на пренадлежание пользователя к какому-либо классу. 
+        if user_class_id is None:
+            return -2
         
         # Проверка на существование роли.
         if not role in self._roles.role_names_dict.keys():
-            return -4
+            return -3
         
         # Подключение к классу.
-        async with ConnectToClass(class_id) as db_class:
+        async with ConnectToClass(user_class_id) as db_class:
             # Обновление class_id у пользователя.
             await db_class.cursor.execute("""UPDATE "class_users" SET role = ? WHERE id = ?;""", (role, user_id))
         
         return True
+
+    async def get_user_role(self, user_id: int) -> int:
+        """
+        Возвращает роль пользователя.
+        Если нет пользователя в бд, то возвращает -1.
+        Если пользователь не состоит в классе, то возвращает -2.
+        """
+        
+        # Проверка на существование пользователя.
+        if not await self._check.check_existence_of_user(user_id):
+            return -1
+        
+        # Получение класс в котором состоит пользователь.
+        user_class_id = await self._user.get_user_class_id(user_id)
+        
+        # Проверка на пренадлежание пользователя к какому-либо классу. 
+        if user_class_id is None:
+            return -2
+        
+        # Подключение к классу.
+        async with ConnectToClass(user_class_id) as db_class:
+            # Обновление class_id у пользователя.
+            await db_class.cursor.execute("""SELECT role FROM "class_users" WHERE id = ?;""", (user_id, ))
+            user_role = await db_class.cursor.fetchone()[0]
+        
+        return user_role
 
     async def get_class_data(self, class_id: int):
         """
@@ -184,6 +207,6 @@ class Class():
         await self.add_user_to_class(user_id_of_owner, class_id, invited_by=None)
 
         # Изменение роли пользователя на владельца.
-        await self.change_user_role(user_id_of_owner, class_id, self._roles.OWNER)
+        await self.change_user_role(user_id_of_owner, self._roles.OWNER)
 
         return class_id
