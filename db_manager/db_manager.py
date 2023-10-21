@@ -2,6 +2,8 @@ from .singleton import Singleton
 
 from .models import Models
 from .schedule import Schedule
+from .group import Group
+from .task import Task
 from .check import Check
 from .invitation import Invitation
 from .user import User
@@ -13,6 +15,8 @@ from configs.roles_config import Roles
 class DBManager(Singleton):
     def __init__(self) -> None:
         self.schedule = Schedule()
+        self.group = Group()
+        self.task = Task()
         self.invitation = Invitation()
         self.check = Check()
         self.user = User()

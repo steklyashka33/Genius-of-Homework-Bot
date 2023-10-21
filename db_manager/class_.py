@@ -116,7 +116,7 @@ class Class():
         if not await self._check.check_existence_of_user(user_id):
             return -1
         
-        # Получение класс в котором состоит пользователь.
+        # Получение класса в котором состоит пользователь.
         user_class_id = await self._user.get_user_class_id(user_id)
         
         # Проверка на пренадлежание пользователя к какому-либо классу. 
@@ -138,14 +138,14 @@ class Class():
         """
         Возвращает роль пользователя.
         Если нет пользователя в бд, то возвращает -1.
-        Если пользователь не состоит в классе, то возвращает -2.
+        Если пользователь не состоит в классе/локальном классе, то возвращает -2.
         """
         
         # Проверка на существование пользователя.
         if not await self._check.check_existence_of_user(user_id):
             return -1
         
-        # Получение класс в котором состоит пользователь.
+        # Получение класса в котором состоит пользователь.
         user_class_id = await self._user.get_user_class_id(user_id)
         
         # Проверка на пренадлежание пользователя к какому-либо классу. 
@@ -154,9 +154,9 @@ class Class():
         
         # Подключение к классу.
         async with ConnectToClass(user_class_id) as db_class:
-            # Обновление class_id у пользователя.
+            # Получение роли пользователя.
             await db_class.cursor.execute("""SELECT role FROM "class_users" WHERE id = ?;""", (user_id, ))
-            user_role = await db_class.cursor.fetchone()[0]
+            user_role = (await db_class.cursor.fetchone())[0]
         
         return user_role
 
@@ -174,7 +174,7 @@ class Class():
         async with ConnectToDB() as db:
             # Получение данных класса.
             await db.cursor.execute("""SELECT * FROM "all_classes" WHERE class_id = ?""", (class_id,))
-            class_data = await db.cursor.fetchone()[1:]
+            class_data = (await db.cursor.fetchone())[1:]
 
         return class_data
 

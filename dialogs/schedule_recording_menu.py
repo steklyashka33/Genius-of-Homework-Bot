@@ -1,5 +1,6 @@
 import operator
 from typing import Any
+
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 
@@ -109,10 +110,10 @@ async def on_clear_btn(callback: CallbackQuery, button: Button, dialog_manager: 
 async def back_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     data["schedule"][ data["current_day"] ] = data["current_schedule_for_day"]
-    data["current_day"] -= 1
-    if data["current_day"] < 1:
-        dialog_manager.back()
+    if data["current_day"] == 1:
+        await dialog_manager.back()
         return
+    data["current_day"] -= 1
     data["current_schedule_for_day"] = data["schedule"][ data["current_day"] ]
     data["current_lesson"] = await find_max_key_with_non_none_value(data["current_schedule_for_day"])
     data["show_subjects"] = data["current_lesson"] <= 8

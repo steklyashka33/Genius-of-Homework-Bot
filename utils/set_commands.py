@@ -38,7 +38,7 @@ admin_commands = [
     ),
     BotCommand(
         command="logout",
-        description="Убирает ваши права администратора"
+        description="Отбирает ваши права администратора"
     ),
 ]
 class_commands = {
@@ -67,6 +67,14 @@ class_commands = {
         # ),
     ],
     Roles.OWNER: [
+        BotCommand(
+            command="changeschedule",
+            description="Изменить расписание на неделю"
+        ),
+        BotCommand(
+            command="changedayschedule",
+            description="Изменить расписание на день"
+        ),
         # BotCommand(
         #     command="",
         #     description=""
@@ -86,10 +94,13 @@ class Commands:
 
     @classmethod
     async def set_bot_commands(cls, bot: Bot):
+        db = DBManager()
         await bot.set_my_commands(bot_commands, BotCommandScopeDefault())
+        for user in await db.user.get_all_bot_user():
+            await cls.set_default_commands_for_user(bot, user)
 
     @classmethod
-    async def set_bot_admin_and_class_commands(cls, bot: Bot):
+    async def set_bot_admin_and_class_commands(cls, bot: Bot, user_id: int = None):
         db = DBManager()
         all_bot_admin = await db.user.get_all_bot_admin()
         all_class_members = await db.user.get_all_class_members()
@@ -98,27 +109,40 @@ class Commands:
         only_class_members = await cls._values_are_not_equal(all_class_members, all_bot_admin)
         users_administrators_and_class_members = await cls._find_intersection(all_bot_admin, all_class_members)
         
-        for admin_id in only_bot_admins:
-            commands = bot_commands + admin_commands
-            await cls._set_commands_for_user(bot, commands, admin_id)
-        
-        for user_id in only_class_members:
-            commands = bot_commands + cls._get_class_commands_for_user(user_id)
-            await cls._set_commands_for_user(bot, commands, user_id)
-        
-        for user_id in users_administrators_and_class_members:
-            commands = bot_commands + admin_commands + cls._get_class_commands_for_user(user_id)
-            await cls._set_commands_for_user(bot, commands, user_id)
+        if user_id is None:
+            for admin_id in only_bot_admins:
+                commands = bot_commands + admin_commands
+                await cls._set_commands_for_user(bot, commands, admin_id)
+            
+            for user_id in only_class_members:
+                commands = bot_commands + await cls._get_class_commands_for_user(user_id)
+                await cls._set_commands_for_user(bot, commands, user_id)
+            
+            for user_id in users_administrators_and_class_members:
+                commands = bot_commands + admin_commands + cls._get_class_commands_for_user(user_id)
+                await cls._set_commands_for_user(bot, commands, user_id)
+        else:
+            if user_id in only_bot_admins:
+                commands = bot_commands + admin_commands
+                await cls._set_commands_for_user(bot, commands, user_id)
+            
+            if user_id in only_class_members:
+                commands = bot_commands + cls._get_class_commands_for_user(user_id)
+                await cls._set_commands_for_user(bot, commands, user_id)
+
+            if user_id in users_administrators_and_class_members:
+                commands = bot_commands + admin_commands + cls._get_class_commands_for_user(user_id)
+                await cls._set_commands_for_user(bot, commands, user_id)
     
     @classmethod
-    async def clear_commands_for_user(cls, bot: Bot, user_id: int):
-        await cls._set_commands_for_user(bot, [], user_id)
+    async def set_default_commands_for_user(cls, bot: Bot, user_id: int):
+        await cls._set_commands_for_user(bot, bot_commands, user_id)
 
 
     @staticmethod
     async def _get_class_commands_for_user(user_id: int):
         db = DBManager()
-        user_role = db.class_.get_user_role(user_id)
+        user_role = await db.class_.get_user_role(user_id)
         all_role_commands = [role for role in class_commands.keys() if role <= user_role]
         all_user_commands = sum( [class_commands[role] for role in all_role_commands], [])
         return all_user_commands

@@ -52,6 +52,6 @@ async def clear_and_set_commands(user_id: int):
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
     bot = MyBot().bot
     # Clear commands
-    await Commands.clear_commands_for_user(bot, user_id)
+    await Commands.set_default_commands_for_user(bot, user_id)
     # Set commands
-    await Commands.set_commands(bot)
+    await Commands.set_bot_admin_and_class_commands(bot, user_id)

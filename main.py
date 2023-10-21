@@ -10,9 +10,9 @@ from handlers.bot.start import start_router
 from handlers.bot.admin import bot_admin_router
 from handlers.bot.menu import menu_router
 from handlers.bot.user import user_router
-from handlers.bot.echo import echo_router
 from handlers.class_.class_control import class_control_router
 from handlers.class_.schedule import schedule_router
+from handlers.class_.task import task_router
 
 from dialogs.create_class_menu import create_class_menu
 from dialogs.schedule_recording_menu import schedule_recording_menu
@@ -46,7 +46,7 @@ async def main() -> None:
         class_control_router,
         schedule_router,
         bot_admin_router,
-        echo_router
+        task_router
     )
     setup_dialogs(dp)
 

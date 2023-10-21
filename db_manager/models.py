@@ -60,7 +60,7 @@ class Models():
             
             # Возвращает class_id записанной строки.
             await db.cursor.execute("""SELECT LAST_INSERT_ROWID();""")
-            class_id = await db.cursor.fetchone()[0]
+            class_id = (await db.cursor.fetchone())[0]
                 
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
@@ -78,8 +78,8 @@ class Models():
 
             await db_class.cursor.execute("""CREATE TABLE IF NOT EXISTS "groups" (
                 "user_id"	INTEGER,
-                "subject"	INTEGER NOT NULL,
-                "group"	INTEGER NOT NULL
+                "subject"	TEXT NOT NULL,
+                "subject_group"	TEXT NOT NULL
             );""")
 
             await db_class.cursor.execute("""CREATE TABLE IF NOT EXISTS "class_users" (

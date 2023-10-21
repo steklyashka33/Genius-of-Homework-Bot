@@ -33,7 +33,7 @@ class Schedule():
         if not 1 <= day <= 7:
             return -2
     
-        # Получение к классу.
+        # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             # Поиск дня.
             await db_class.cursor.execute("""SELECT day FROM "schedule" WHERE day = ?""", (day, ))
@@ -68,14 +68,14 @@ class Schedule():
         if not await self._check.check_existence_of_class(class_id):
             return -1
     
-        # Получение к классу.
+        # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             # Получение всех записанных дней в расписании.
             await db_class.cursor.execute("""SELECT day FROM "schedule" """)
             result = await db_class.cursor.fetchall()
             all_recorded_days = [value[0] for value in result]
 
-            return all_recorded_days
+        return all_recorded_days
 
     async def get_all_subjects(self, class_id: int):
         """
@@ -87,7 +87,7 @@ class Schedule():
         if not await self._check.check_existence_of_class(class_id):
             return -1
     
-        # Получение к классу.
+        # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             # Поиск всех предметов.
             await db_class.cursor.execute("""
@@ -154,7 +154,7 @@ class Schedule():
         if not 1 <= day <= 7:
             return -2
     
-        # Получение к классу.
+        # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             # Поиск уроков на следующий день в расписании.
             await db_class.cursor.execute("""SELECT *

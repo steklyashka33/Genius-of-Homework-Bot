@@ -1,4 +1,3 @@
-from aiogram import F
 from aiogram.filters import Filter
 from aiogram.types import Message
 from db_manager import DBManager

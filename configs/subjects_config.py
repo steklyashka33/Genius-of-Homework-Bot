@@ -88,3 +88,17 @@ class Subjects:
                 subjects_for_grade.append(subject)
 
         return subjects_for_grade
+    
+    @classmethod
+    async def get_subject_from_text(cls, text: str) -> str:
+        """Возвращает все написанные предметы в тексте."""
+        result = []
+
+        for subject, subject_names in cls.SUBJECTS_NAMES.items():
+            for subject_name in subject_names:
+                if subject_name in text:
+                    result.append(subject)
+        
+        all_subjects_in_text = list( set(result) )
+
+        return all_subjects_in_text

@@ -24,7 +24,6 @@ CITY_TEXTINPUT_ID = "get_city"
 
 
 async def class_textinput_filter(messege: Message, dialog_manager: DialogManager, **kwargs):
-    kwargs
     max_class = 11
     numbers = re.sub(r'[^0-9]', '', messege.text)
     letters = re.sub(r'[^А-Яа-яЁё]', '', messege.text.upper())

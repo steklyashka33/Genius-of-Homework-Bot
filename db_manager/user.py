@@ -62,31 +62,47 @@ class User():
             await db.cursor.execute("UPDATE users SET is_admin=0 WHERE user_id=?;", (user_id, ))
             return True
     
+    async def get_all_bot_user(self):
+        """Возвращает все id пользователей бота."""
+
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Получение всех id пользователей.
+            await db.cursor.execute("""SELECT user_id FROM "users";""")
+            user_ids = [row[0] for row in await db.cursor.fetchall()]
+
+            return user_ids
+
     async def get_all_bot_admin(self):
         """Возвращает все id админов бота."""
 
         # Подключение к бд.
         async with ConnectToDB() as db:
             # Получение всех id администраторов.
-            await db.cursor.execute("""SELECT user_id FROM "users" WHERE is_admin=1""")
+            await db.cursor.execute("""SELECT user_id FROM "users" WHERE is_admin=1;""")
             admin_ids = [row[0] for row in await db.cursor.fetchall()]
 
             return admin_ids
 
     async def get_user_class_id(self, user_id: int):
         """
-        Возращает class_id пользователя.
+        Возращает id класса/локального класса в котором состоит пользователь.
         Если пользователя нет в бд, то возращает -1.
+        Если пользователя нет ни в одном классе, то вернёт None.
         """
         
         # Проверка на существование пользователя в бд.
         if not await self._check.check_existence_of_user(user_id):
             return -1
-        
+
         # Подключение к бд.
         async with ConnectToDB() as db:
             await db.cursor.execute("SELECT class_id FROM users WHERE user_id = ?;", (user_id, ))
-            class_id = await db.cursor.fetchone()[0] # Получаем само значение.
+            class_id = (await db.cursor.fetchone())[0] # Получаем само значение.
+        
+            # Проверка на наличае локального класса у пользователя, если он не состоит в классе.
+            if await self._check.check_if_user_has_local_class(user_id) and class_id is None:
+                return user_id
 
             return class_id
     
