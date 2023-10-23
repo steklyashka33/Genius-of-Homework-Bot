@@ -49,10 +49,10 @@ class_commands = {
         # ),
     ],
     Roles.STUDENT: [
-        # BotCommand(
-        #     command="",
-        #     description=""
-        # ),
+        BotCommand(
+            command="addtask",
+            description="Добавить домашнее задание"
+        ),
     ],
     Roles.EDITOR: [
         # BotCommand(

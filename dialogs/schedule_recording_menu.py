@@ -1,5 +1,5 @@
 import operator
-from typing import Any
+from typing import Any, List
 
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
@@ -118,13 +118,7 @@ async def back_btn(callback: CallbackQuery, button: Button, dialog_manager: Dial
     data["current_lesson"] = await find_max_key_with_non_none_value(data["current_schedule_for_day"])
     data["show_subjects"] = data["current_lesson"] <= 8
 
-async def getter(dialog_manager: DialogManager, **kwargs):
-    data = dialog_manager.dialog_data
-    db = DBManager()
-    data["day"] = Week.days_of_week_dict[data["current_day"]][0]
-    class_data = await db.user.get_user_class_data(dialog_manager.event.from_user.id)
-    class_ = class_data[0]
-    all_subjects = sorted(await Subjects.get_subjects_for_grade(class_))
+async def set_subjects_for_pages_and_change_btn(data, all_subjects: List[str]):
     if len(all_subjects) > 10:
         subjects_for_page1 = all_subjects[:len(all_subjects)//2]
         subjects_for_page2 = all_subjects[len(all_subjects)//2:]
@@ -135,6 +129,15 @@ async def getter(dialog_manager: DialogManager, **kwargs):
         data["subjects_for_page1"] = [[i] for i in all_subjects]
         data["subjects_for_page2"] = []
         data["change_btn"] = False
+
+async def getter(dialog_manager: DialogManager, **kwargs):
+    data = dialog_manager.dialog_data
+    db = DBManager()
+    data["day"] = Week.days_of_week_dict[data["current_day"]][0]
+    class_data = await db.user.get_user_class_data(dialog_manager.event.from_user.id)
+    class_ = class_data[0]
+    all_subjects = sorted(await Subjects.get_subjects_for_grade(class_))
+    await set_subjects_for_pages_and_change_btn(data, all_subjects)
     current_schedule: dict = data["current_schedule_for_day"]
     for lesson_number in current_schedule.keys():
         lesson = current_schedule[lesson_number]

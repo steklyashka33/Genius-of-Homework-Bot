@@ -11,6 +11,9 @@ from aiogram_dialog.widgets.input.text import TextInput
 from .schedule_recording_menu import ScheduleRecordingMenu
 from db_manager import DBManager
 
+from utils.set_commands import Commands
+from utils.get_bot import MyBot
+
 class CreateClassMenu(StatesGroup):
     GET_CLASS = State()
     GET_SCHOOL_NUMBER = State()
@@ -59,6 +62,10 @@ async def done(callback: CallbackQuery, button: Button, dialog_manager: DialogMa
     await dialog_manager.done()
     # Отправка пользователю сообщении о успешном создании класса.
     await callback.message.answer("Класс создан.")
+    
+    bot = MyBot().bot
+    # Set commands
+    await Commands.set_commands(bot)
     # Старт диалога для записи рассписания.
     await dialog_manager.start(ScheduleRecordingMenu.START)
 

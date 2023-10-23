@@ -22,14 +22,13 @@ async def command_change_schedule(message: Message, dialog_manager: DialogManage
 
 @task_router.message()
 async def command_change_schedule(message: Message, dialog_manager: DialogManager):
-    if await check_user(message) is True and await DoesUserHaveRights(Roles.STUDENT)(message):
+    if await check_user(message.from_user.id) is True and await DoesUserHaveRights(Roles.STUDENT)(message):
         # Старт диалога для записи рассписания.
         await dialog_manager.start(AddTaskMenu.ENTER_TASK)
     else:
         await message.answer("Неизвестная команда.")
 
-async def check_user(message: Message, user_id):
-    user_id = message.from_user.id
+async def check_user(user_id):
     # Проверка на существование пользователя в бд.
     if not await db.check.check_existence_of_user(user_id):
         return -1

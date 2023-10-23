@@ -93,10 +93,10 @@ class Models():
 
             await db_class.cursor.execute("""CREATE TABLE IF NOT EXISTS "tasks" (
                 "id"	INTEGER NOT NULL UNIQUE,
-                "date"	TEXT NOT NULL,
+                "day"	TEXT NOT NULL,
                 "week"	INTEGER NOT NULL,
                 "subject"	TEXT NOT NULL,
-                "group"	TEXT,
+                "subject_group"	TEXT,
                 "message_id"	INTEGER NOT NULL,
                 "author_id"	INTEGER NOT NULL,
                 "hide_date"	DATE,

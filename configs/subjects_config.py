@@ -65,7 +65,7 @@ class Subjects:
         "Информатика": ["Информатика", "Информатик", "Информат", "Инфо", "Инфа"],
         "Обществознание": ["Обществознание", "Общество", "Общест", "Общага", "Общ"],
         "Черчение": ["Черчение", "Черчен", "Черче", "Черч", "Чёрт", "Черт"],
-        "Алгебра": ["Алгебра", "Албера", "Бебра", "Алг", "Алг-ра", "Алгра"],
+        "Алгебра": ["Алгебра", "Албебра", "Бебра", "Алг", "Алг-ра", "Алгра"],
         "Геометрия": ["Геометрия", "Геометр", "Геомет", "Геом"],
         "Физика": ["Физика", "Физ"],
         "Химия": ["Химия", "Хим"],
@@ -92,11 +92,13 @@ class Subjects:
     @classmethod
     async def get_subject_from_text(cls, text: str) -> str:
         """Возвращает все написанные предметы в тексте."""
+        if not text: return
         result = []
+        all_words = text.split(" ")
 
         for subject, subject_names in cls.SUBJECTS_NAMES.items():
             for subject_name in subject_names:
-                if subject_name in text:
+                if subject_name in all_words:
                     result.append(subject)
         
         all_subjects_in_text = list( set(result) )

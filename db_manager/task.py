@@ -6,9 +6,46 @@ class Task():
     def __init__(self) -> None:
         self._check = Check()
 
-    async def add_task(self, class_id: int):
-        """Добавляет задание."""
-        pass
+    async def add_task(self, 
+                       class_id: int, 
+                       day: int, 
+                       week: int,
+                       subject: str, 
+                       group: str,
+                       message_id: int, 
+                       author_id: int):
+        """
+        Добавляет задание.
+        Если не существует класса, то вернёт -1.
+        Если пользователя нет в бд, то возращает -2.
+        Если day имеет значение не 1-7, то вернёт -3.
+        Если не существует предмета, то вернёт -4.
+        Если всё успешно, то вернёт True.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+        
+        # Проверка на существование пользователя в бд.
+        if not await self._check.check_existence_of_user(author_id):
+            return -2
+        
+        # Проверка на наличае дня в неделе.
+        if not 1 <= day <= 7:
+            return -3
+        
+        # Проверка на существование предмета.
+        if not await self._check.check_for_existence_of_subject(subject):
+            return -4
+    
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            await db_class.cursor.execute("""INSERT INTO "tasks"
+                    (day, week, subject, subject_group, message_id, author_id)
+                    VALUES
+                    (?, ?, ?, ?, ?, ?)""", (day, week, subject, group, message_id, author_id))
+            return True
 
     async def get_next_lesson(self, class_id: int, current_day: int, subject: str):
         """
@@ -49,7 +86,8 @@ class Task():
                     WHEN (day BETWEEN ? AND 7) THEN 1
                     ELSE 2
                 END, day
-                LIMIT 1;""", (next_day, *(subject)*8, current_day, *(subject)*8, next_day))
-            next_lesson = (await db_class.cursor.fetchone())[0]
+                LIMIT 1;""", (next_day, *(subject,)*8, current_day, *(subject,)*8, next_day))
+            result = await db_class.cursor.fetchone()
+            day_of_next_lesson = result[0] if result else result
 
-            return next_lesson
+            return day_of_next_lesson

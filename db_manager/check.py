@@ -44,4 +44,4 @@ class Check:
     async def check_for_existence_of_subject(self, subject: str):
         """Проверка на существование предмета."""
 
-        return subject in Subjects.SUBJECTS_NAMES.keys(subject)
+        return subject in Subjects.SUBJECTS_NAMES

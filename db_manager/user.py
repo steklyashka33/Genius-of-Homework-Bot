@@ -12,15 +12,16 @@ class User():
         Если он уже был в бд, то возращает -1.
         Если всё уcпешно, то возращает True.
         """
+        
+        # Проверка на существование пользователя в бд.
+        if await self._check.check_existence_of_user(user_id):
+            return -1
 
         # Подключение к бд.
         async with ConnectToDB() as db:
-            if not await self._check.check_existence_of_user(user_id):
-                # Добавляет пользователя в бд.
-                await db.cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?);", (user_id, ))
-                return True
-            else:
-                return -1
+            # Добавляет пользователя в бд.
+            await db.cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?);", (user_id, ))
+            return True
     
     async def make_user_administrator(self, user_id: int):
         """
