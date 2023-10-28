@@ -23,37 +23,60 @@ class AddTaskMenu(StatesGroup):
     ENTER_GROUP = State()
     ENTER_DAY = State()
     CONFIRMATION = State()
-    END = State()
+    ASK_IS_THIS_TASK = State()
 
 db = DBManager()
 
-async def task_messegeinput_filter(messege: Message, message_input: MessageInput, dialog_manager: DialogManager, **kwargs):
-    data = dialog_manager.dialog_data
-    all_subjects_in_text = await Subjects.get_subject_from_text(messege.text or messege.caption)
-    user_id = messege.from_user.id
+async def get_next_window(message: Message, dialog_manager: DialogManager):
+    """Возвращает следующее окно."""
+    all_subjects_in_text = await Subjects.get_subject_from_text(message.text or message.caption)
+    user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)
     all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)
-    if isinstance(all_subjects_in_text, list) and all_subjects_in_text[0] in all_subjects_in_schedule:
+    if isinstance(all_subjects_in_text, list) and all_subjects_in_text and all_subjects_in_text[0] in all_subjects_in_schedule:
+        subject = all_subjects_in_text[0]
+        all_groups_in_subject = await db.group.get_all_groups_in_subject(user_class_id, subject)
+        user_group = await db.group.get_user_group_by_subject(user_class_id, user_id, subject)
+
+        if all_groups_in_subject and isinstance(user_group, None):
+            window = AddTaskMenu.ENTER_GROUP
+        else:
+            window = AddTaskMenu.ENTER_DAY
+    else:
+        window = AddTaskMenu.ENTER_SUBJECT
+    return window
+
+async def set_data(message: Message, dialog_manager: DialogManager):
+    data = dialog_manager.dialog_data
+    all_subjects_in_text = await Subjects.get_subject_from_text(message.text or message.caption)
+    user_id = message.from_user.id
+    user_class_id = await db.user.get_user_class_id(user_id)
+    all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)
+    if isinstance(all_subjects_in_text, list) and all_subjects_in_text and all_subjects_in_text[0] in all_subjects_in_schedule:
         subject = all_subjects_in_text[0]
         data["subject"] = subject
         all_groups_in_subject = await db.group.get_all_groups_in_subject(user_class_id, subject)
         user_group = await db.group.get_user_group_by_subject(user_class_id, user_id, subject)
 
         if all_groups_in_subject and isinstance(user_group, None):
-            await dialog_manager.switch_to(AddTaskMenu.ENTER_GROUP)
+            pass
         else:
             data["group"] = user_group
             now = dt.now()
             current_day = now.isoweekday()
             data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
             data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
-            await dialog_manager.switch_to(AddTaskMenu.ENTER_DAY)
     else:
-        await dialog_manager.switch_to(AddTaskMenu.ENTER_SUBJECT)
+        pass
     await set_subjects_for_pages_and_change_btn(data, all_subjects_in_schedule)
     data["page1"] = True
     data["page2"] = False
-    data["task_id"] = messege.message_id
+    data["task_id"] = message.message_id
+
+async def task_message_input_filter(message: Message, message_input: MessageInput, dialog_manager: DialogManager, **kwargs):
+    window = await get_next_window(message, dialog_manager)
+    await dialog_manager.switch_to(window)
+    await set_data(message, dialog_manager)
     return True
 
 async def back_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -86,11 +109,19 @@ async def on_change_btn(callback: CallbackQuery, button: Button, dialog_manager:
     data["page1"] = not data["page1"]
     data["page2"] = not data["page2"]
 
-async def set_number_week(data, day: int):
-    now = dt.now()
+async def get_next_week(now: dt = None):
+    now = now if now else dt.now()
+    next_week = now + td(weeks=1)
+    return next_week
+
+async def is_day_next_week(day: int, current_day: int):
+    return day <= current_day
+
+async def set_number_week(data, day: int, now: dt = None):
+    now = now if now else dt.now()
     current_day = now.isoweekday()
-    if day <= current_day:
-        next_week = now + td(weeks=1)
+    if await is_day_next_week(day, current_day):
+        next_week = await get_next_week(now)
         data["week"] = next_week.isocalendar()[1]
     else:
         data["week"] = now.isocalendar()[1]
@@ -104,7 +135,12 @@ async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_man
 async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     data["day"] = data["day_of_through_lesson"]
-    await set_number_week(data, data["day"])
+    if not (await is_day_next_week(data["day_of_next_lesson"], data["day_of_through_lesson"]) and
+            data["day_of_next_lesson"] == data["day_of_through_lesson"]):
+        await set_number_week(data, data["day"])
+    else:
+        next_week = await get_next_week()
+        await set_number_week(data, data["day"], next_week)
     await dialog_manager.switch_to(AddTaskMenu.CONFIRMATION)
 
 async def getter_day(dialog_manager: DialogManager, **kwargs):
@@ -132,13 +168,18 @@ async def getter_confirm(dialog_manager: DialogManager, **kwargs):
     data["day_name"] = Week.days_of_week_dict[data["day"]][0]
     return data
 
+async def on_ask_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    data = dialog_manager.dialog_data
+    message = data["message"]
+    await task_message_input_filter(message, None, dialog_manager)
+
 
 
 add_task_menu = Dialog(
     Window(
         Const(
             "Запишите задание.\n\n"
-            "П.С. Вы можете в задании написать его предмет,\n"
+            "П.С. Вы можете в первой строчке задания написать его предмет,\n"
             "чтобы не вводить его позже.\n"
             "Ещё вы можете написать задание не вызывая команду,\n"
             "после просто указать, что это задание."
@@ -146,7 +187,7 @@ add_task_menu = Dialog(
         Column(
             Cancel(text=Const("Отмена"))
         ),
-        MessageInput(task_messegeinput_filter, content_types=[
+        MessageInput(task_message_input_filter, content_types=[
             ContentType.TEXT, ContentType.DOCUMENT, ContentType.AUDIO, ContentType.PHOTO, ContentType.VIDEO
             ]),
         state=AddTaskMenu.ENTER_TASK
@@ -228,5 +269,16 @@ add_task_menu = Dialog(
         ),
         state=AddTaskMenu.CONFIRMATION,
         getter=getter_confirm
+    ),
+    Window(
+        Format(
+            "Это задание?\n"
+        ),
+        Column(
+            Button(text=Const("Да"), id="ask", on_click=on_ask_btn),
+            Cancel(text=Const("Нет")),
+        ),
+        state=AddTaskMenu.ASK_IS_THIS_TASK,
+        getter=getter
     ),
 )

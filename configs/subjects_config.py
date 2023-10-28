@@ -91,14 +91,14 @@ class Subjects:
     
     @classmethod
     async def get_subject_from_text(cls, text: str) -> str:
-        """Возвращает все написанные предметы в тексте."""
+        """Возвращает все написанные предметы в первой строке текста."""
         if not text: return
         result = []
-        all_words = text.split(" ")
+        first_line = text.split("\n")[0]
 
         for subject, subject_names in cls.SUBJECTS_NAMES.items():
             for subject_name in subject_names:
-                if subject_name in all_words:
+                if subject_name in first_line:
                     result.append(subject)
         
         all_subjects_in_text = list( set(result) )

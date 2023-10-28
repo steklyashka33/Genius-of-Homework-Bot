@@ -174,7 +174,20 @@ class Class():
         async with ConnectToDB() as db:
             # Получение данных класса.
             await db.cursor.execute("""SELECT * FROM "all_classes" WHERE class_id = ?""", (class_id,))
-            class_data = (await db.cursor.fetchone())[1:]
+            class_data = (await db.cursor.fetchone())[0][1:]
+
+        return class_data
+
+    async def get_all_class_data(self):
+        """
+        Возращает class_id, class, letter, school, city - данные класса.
+        """
+        
+        # Подключение к бд.
+        async with ConnectToDB() as db:
+            # Получение данных класса.
+            await db.cursor.execute("""SELECT * FROM "all_classes" """)
+            class_data = await db.cursor.fetchall()
 
         return class_data
 

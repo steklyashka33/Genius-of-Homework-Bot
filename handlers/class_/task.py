@@ -24,7 +24,8 @@ async def command_change_schedule(message: Message, dialog_manager: DialogManage
 async def command_change_schedule(message: Message, dialog_manager: DialogManager):
     if await check_user(message.from_user.id) is True and await DoesUserHaveRights(Roles.STUDENT)(message):
         # Старт диалога для записи рассписания.
-        await dialog_manager.start(AddTaskMenu.ENTER_TASK)
+        await dialog_manager.start(AddTaskMenu.ASK_IS_THIS_TASK)
+        dialog_manager.dialog_data["message"] = message
     else:
         await message.answer("Неизвестная команда.")
 

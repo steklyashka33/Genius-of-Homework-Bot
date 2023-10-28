@@ -10,7 +10,7 @@ from filters.is_admin import IsAdmin
 from utils.set_commands import Commands
 from utils.get_bot import MyBot
 
-from configs.config import DB_PATH
+from configs.config import DB_PATH, CLASS_PATH
 
 db = DBManager()
 bot_admin_router = Router()
@@ -35,6 +35,10 @@ async def login_to_admin(message: Message):
 async def getdatabase_cmd(message: Message):
     db_file = FSInputFile(DB_PATH)
     await message.answer_document(db_file)
+    all_class_ids = [i[0] for i in await db.class_.get_all_class_data()]
+    for class_id in all_class_ids:
+        class_db_file = FSInputFile(CLASS_PATH.format(class_id))
+        await message.answer_document(class_db_file)
         
 @bot_admin_router.message(IsAdmin(), Command("logout"))
 async def logout_cmd(message: Message):
