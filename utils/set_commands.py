@@ -119,7 +119,7 @@ class Commands:
                 await cls._set_commands_for_user(bot, commands, user_id)
             
             for user_id in users_administrators_and_class_members:
-                commands = bot_commands + admin_commands + cls._get_class_commands_for_user(user_id)
+                commands = bot_commands + admin_commands + await cls._get_class_commands_for_user(user_id)
                 await cls._set_commands_for_user(bot, commands, user_id)
         else:
             if user_id in only_bot_admins:
@@ -127,11 +127,11 @@ class Commands:
                 await cls._set_commands_for_user(bot, commands, user_id)
             
             if user_id in only_class_members:
-                commands = bot_commands + cls._get_class_commands_for_user(user_id)
+                commands = bot_commands + await cls._get_class_commands_for_user(user_id)
                 await cls._set_commands_for_user(bot, commands, user_id)
 
             if user_id in users_administrators_and_class_members:
-                commands = bot_commands + admin_commands + cls._get_class_commands_for_user(user_id)
+                commands = bot_commands + admin_commands + await cls._get_class_commands_for_user(user_id)
                 await cls._set_commands_for_user(bot, commands, user_id)
     
     @classmethod

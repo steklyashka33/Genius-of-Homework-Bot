@@ -174,7 +174,7 @@ class Class():
         async with ConnectToDB() as db:
             # Получение данных класса.
             await db.cursor.execute("""SELECT * FROM "all_classes" WHERE class_id = ?""", (class_id,))
-            class_data = (await db.cursor.fetchone())[0][1:]
+            class_data = (await db.cursor.fetchone())[1:]
 
         return class_data
 

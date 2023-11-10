@@ -43,6 +43,8 @@ async def get_next_window(message: Message, dialog_manager: DialogManager):
         else:
             window = AddTaskMenu.ENTER_DAY
     else:
+        if isinstance(all_subjects_in_text, list) and all_subjects_in_text:
+            await message.answer(f"Предмета {all_subjects_in_text[0]} нет в расписании.")
         window = AddTaskMenu.ENTER_SUBJECT
     return window
 
