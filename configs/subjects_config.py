@@ -1,3 +1,6 @@
+import re
+
+
 class Subjects:
     # Constants with subjects and their grade levels
     SUBJECTS_AND_GRADES = {
@@ -90,17 +93,30 @@ class Subjects:
         return subjects_for_grade
     
     @classmethod
-    async def get_subject_from_text(cls, text: str) -> str:
+    async def get_subjects_from_text(cls, text: str) -> str:
         """Возвращает все написанные предметы в первой строке текста."""
         if not text: return
         result = []
-        first_line = text.split("\n")[0]
+        line = re.sub('[!@#$\n-.,]', '', text.lower().split("\n")[0])
+        first_line = line.split()
 
         for subject, subject_names in cls.SUBJECTS_NAMES.items():
             for subject_name in subject_names:
-                if subject_name in first_line:
+                if subject_name.lower() in first_line:
                     result.append(subject)
         
         all_subjects_in_text = list( set(result) )
 
         return all_subjects_in_text
+    
+    @classmethod
+    async def get_subject_from_text(cls, text: str) -> str:
+        """Возвращает первый найденный предметы в тексте."""
+        if not text: return
+        line = re.sub('[!@#$\n-.,]', '', text.lower())
+        processed_text = line.split()
+
+        for subject, subject_names in cls.SUBJECTS_NAMES.items():
+            for subject_name in subject_names:
+                if subject_name.lower() in processed_text:
+                    return subject

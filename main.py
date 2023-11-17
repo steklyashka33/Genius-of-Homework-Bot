@@ -19,14 +19,13 @@ from middlewares.add_user_id_to_database import add_user_id_to_database_router
 from dialogs.create_class_menu import create_class_menu
 from dialogs.schedule_recording_menu import schedule_recording_menu
 from dialogs.add_task_menu import add_task_menu
+from dialogs.get_task_menu import get_task_menu
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
-from aiogram.types import Message
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters.state import StatesGroup, State
 
-from aiogram_dialog import Dialog, Window, setup_dialogs, DialogManager
+from aiogram_dialog import setup_dialogs, DialogManager
 
 from utils.set_commands import Commands
 from utils.get_bot import MyBot
@@ -46,6 +45,7 @@ async def main() -> None:
         create_class_menu,
         schedule_recording_menu,
         add_task_menu,
+        get_task_menu,
         menu_router,
         user_router,
         class_control_router,

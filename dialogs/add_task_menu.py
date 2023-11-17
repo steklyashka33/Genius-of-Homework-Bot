@@ -29,7 +29,7 @@ db = DBManager()
 
 async def get_next_window(message: Message, dialog_manager: DialogManager):
     """Возвращает следующее окно."""
-    all_subjects_in_text = await Subjects.get_subject_from_text(message.text or message.caption)
+    all_subjects_in_text = await Subjects.get_subjects_from_text(message.text or message.caption)
     user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)
     all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)
@@ -50,7 +50,7 @@ async def get_next_window(message: Message, dialog_manager: DialogManager):
 
 async def set_data(message: Message, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
-    all_subjects_in_text = await Subjects.get_subject_from_text(message.text or message.caption)
+    all_subjects_in_text = await Subjects.get_subjects_from_text(message.text or message.caption)
     user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)
     all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)

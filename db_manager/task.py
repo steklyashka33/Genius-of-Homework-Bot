@@ -46,6 +46,43 @@ class Task():
                     VALUES
                     (?, ?, ?, ?, ?, ?)""", (day, week, subject, group, message_id, author_id))
             return True
+    
+    async def get_task(self,
+                       class_id: int, 
+                       day: int, 
+                       week: int,
+                       subject: str):
+        """
+        Возвращает subject_group, messange_id, author_id задания.
+        Если не существует класса, то вернёт -1.
+        Если day имеет значение не 1-7, то вернёт -2.
+        Если не существует предмета, то вернёт -3.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+        
+        # Проверка на наличае дня в неделе.
+        if not 1 <= day <= 7:
+            return -2
+        
+        # Проверка на существование предмета.
+        if not await self._check.check_for_existence_of_subject(subject):
+            return -3
+    
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            # Получение задания на нужный день.
+            await db_class.cursor.execute("""SELECT subject_group, message_id, author_id FROM tasks 
+                                          WHERE 
+                                          day=? AND 
+                                          week=? AND 
+                                          subject=? AND 
+                                          hide_date is NULL 
+                                          AND hide_by is NULL""", (day, week, subject))
+            result = await db_class.cursor.fetchall()
+            return result
 
     async def get_next_lesson(self, class_id: int, current_day: int, subject: str):
         """

@@ -1,4 +1,5 @@
 from os import getenv
+from dotenv import load_dotenv
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -11,6 +12,9 @@ from utils.set_commands import Commands
 from utils.get_bot import MyBot
 
 from configs.config import DB_PATH, CLASS_PATH
+
+# Load .env file
+load_dotenv()
 
 db = DBManager()
 bot_admin_router = Router()

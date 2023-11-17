@@ -18,14 +18,14 @@ bot_commands = [
         command="homework",
         description="Домашнее задание"
     ),
-    BotCommand(
-        command="profile",
-        description="Профиль"
-    ),
-    BotCommand(
-        command="info",
-        description="Информация"
-    ),
+    # BotCommand(
+    #     command="profile",
+    #     description="Профиль"
+    # ),
+    # BotCommand(
+    #     command="info",
+    #     description="Информация"
+    # ),
     # BotCommand(
     #     command="",
     #     description=""
@@ -110,28 +110,28 @@ class Commands:
         users_administrators_and_class_members = await cls._find_intersection(all_bot_admin, all_class_members)
         
         if user_id is None:
-            for admin_id in only_bot_admins:
-                commands = bot_commands + admin_commands
-                await cls._set_commands_for_user(bot, commands, admin_id)
-            
             for user_id in only_class_members:
                 commands = bot_commands + await cls._get_class_commands_for_user(user_id)
                 await cls._set_commands_for_user(bot, commands, user_id)
             
+            for admin_id in only_bot_admins:
+                commands = bot_commands + admin_commands
+                await cls._set_commands_for_user(bot, commands, admin_id)
+            
             for user_id in users_administrators_and_class_members:
-                commands = bot_commands + admin_commands + await cls._get_class_commands_for_user(user_id)
+                commands = bot_commands+ await cls._get_class_commands_for_user(user_id) + admin_commands 
                 await cls._set_commands_for_user(bot, commands, user_id)
         else:
-            if user_id in only_bot_admins:
-                commands = bot_commands + admin_commands
-                await cls._set_commands_for_user(bot, commands, user_id)
-            
             if user_id in only_class_members:
                 commands = bot_commands + await cls._get_class_commands_for_user(user_id)
                 await cls._set_commands_for_user(bot, commands, user_id)
 
+            if user_id in only_bot_admins:
+                commands = bot_commands + admin_commands
+                await cls._set_commands_for_user(bot, commands, user_id)
+            
             if user_id in users_administrators_and_class_members:
-                commands = bot_commands + admin_commands + await cls._get_class_commands_for_user(user_id)
+                commands = bot_commands + await cls._get_class_commands_for_user(user_id) + admin_commands
                 await cls._set_commands_for_user(bot, commands, user_id)
     
     @classmethod

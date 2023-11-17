@@ -57,17 +57,24 @@ async def done(callback: CallbackQuery, button: Button, dialog_manager: DialogMa
     db = DBManager()
     data = dialog_manager.dialog_data
     # Создание класса.
-    await db.class_.create_class(callback.from_user.id, data["class_number"], data["class_letter"], data["school_number"], data["city"])
+    result = await db.class_.create_class(callback.from_user.id, data["class_number"], data["class_letter"], data["school_number"], data["city"])
     # Закрытие текущего диалога.
     await dialog_manager.done()
-    # Отправка пользователю сообщении о успешном создании класса.
-    await callback.message.answer("Класс создан.")
+    if result is True:
+        # Отправка пользователю сообщении о успешном создании класса.
+        await callback.message.answer("Класс создан.")
+        # Старт диалога для записи рассписания.
+        await dialog_manager.start(ScheduleRecordingMenu.START)
+    elif result == -2:
+        # Отправка пользователю сообщении о неудачном создании класса.
+        await callback.message.answer("Невозможно создать класс находясь в другом классе.")
+    elif result == -3:
+        # Отправка пользователю сообщении о неудачном создании класса.
+        await callback.message.answer("Данный класс уже был создан.")
     
     bot = MyBot().bot
     # Set commands
     await Commands.set_commands(bot)
-    # Старт диалога для записи рассписания.
-    await dialog_manager.start(ScheduleRecordingMenu.START)
 
 async def to_first(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.switch_to(CreateClassMenu.GET_CLASS)
