@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager
 from db_manager import DBManager
 
 from dialogs.add_task_menu import AddTaskMenu
-from dialogs.get_task_menu import GetTaskMenu
+from dialogs.get_task_menu import GetTaskMenu, set_data
 
 from configs.roles_config import Roles
 from configs.subjects_config import Subjects
@@ -33,8 +33,11 @@ async def subject_message_handler(message: Message, dialog_manager: DialogManage
     subject_in_text = await Subjects.get_subject_from_text(message.text or message.caption)
 
     if subject_in_text and subject_in_text in all_subjects_in_schedule:
-        await dialog_manager.start(GetTaskMenu.ASK_ABOUT_SENDING_HOMEWORK)
-        dialog_manager.dialog_data["subject"] = subject_in_text
+        data = await set_data(dialog_manager, subject_in_text, message.from_user.id)
+        if data:
+            await dialog_manager.start(GetTaskMenu.ENTER_DAY, data=data)
+        else:
+            await message.answer("Нет задания на ближайшие уроки")
     else:
         await message.answer("Данного предмета нет в расписании.")
 

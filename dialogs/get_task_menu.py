@@ -47,9 +47,9 @@ async def on_ask_btn(callback: CallbackQuery, button: Button, dialog_manager: Di
     else:
         await callback.message.answer("Нет задания на ближайшие уроки")
 
-async def set_data(dialog_manager: DialogManager, user_id: int):
+async def set_data(dialog_manager: DialogManager, subject, user_id: int):
     data = dialog_manager.dialog_data
-    subject = data["subject"]
+    data["subject"] = subject
     user_class_id = await db.user.get_user_class_id(user_id)
 
     now = dt.now()
@@ -82,8 +82,8 @@ async def set_data(dialog_manager: DialogManager, user_id: int):
     
     if not(tasks_for_next_lesson or tasks_for_through_lesson):
         dialog_manager.done()
-        return False
-    return True
+        return 
+    return data
 
 async def on_subject_selected(callback: CallbackQuery, widget: Any,
                             dialog_manager: DialogManager, item_id: str):
