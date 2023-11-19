@@ -53,6 +53,10 @@ class_commands = {
             command="addtask",
             description="Добавить домашнее задание"
         ),
+        BotCommand(
+            command="gettask",
+            description="Получить домашнее задание"
+        ),
     ],
     Roles.EDITOR: [
         # BotCommand(

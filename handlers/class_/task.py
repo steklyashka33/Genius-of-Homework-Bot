@@ -25,6 +25,12 @@ async def command_add_task(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(AddTaskMenu.ENTER_TASK)
 
 
+@task_router.message(DoesUserHaveRights(Roles.VIEWER), Command("gettask"))
+async def command_add_task(message: Message, dialog_manager: DialogManager):
+    # Старт диалога для записи рассписания.
+    await dialog_manager.start(GetTaskMenu.ENTER_SUBJECT)
+
+
 @task_router.message(DoesUserHaveRights(Roles.VIEWER), IsSubject())
 async def subject_message_handler(message: Message, dialog_manager: DialogManager):
     user_id = message.from_user.id

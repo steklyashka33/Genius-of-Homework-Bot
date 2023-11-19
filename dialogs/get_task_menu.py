@@ -17,7 +17,6 @@ from db_manager import DBManager
 from utils.get_bot import MyBot
 
 class GetTaskMenu(StatesGroup):
-    ASK_ABOUT_SENDING_HOMEWORK = State()
     ENTER_SUBJECT = State()
     ENTER_DAY = State()
 
@@ -40,15 +39,8 @@ async def get_number_week(data, day: int, now: dt = None):
     else:
         return now.isocalendar()[1]
 
-async def on_ask_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    result = await set_data(dialog_manager, callback.from_user.id)
-    if result:
-        await dialog_manager.switch_to(GetTaskMenu.ENTER_DAY)
-    else:
-        await callback.message.answer("Нет задания на ближайшие уроки")
-
 async def set_data(dialog_manager: DialogManager, subject, user_id: int):
-    data = dialog_manager.dialog_data
+    data = {}
     data["subject"] = subject
     user_class_id = await db.user.get_user_class_id(user_id)
 
@@ -81,19 +73,27 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
         data["no_through_lesson"] = True
     
     if not(tasks_for_next_lesson or tasks_for_through_lesson):
-        dialog_manager.done()
         return 
     return data
 
 async def on_subject_selected(callback: CallbackQuery, widget: Any,
                             dialog_manager: DialogManager, item_id: str):
     data = dialog_manager.dialog_data
-    data["subject"] = subject = item_id
-    await set_data(dialog_manager, callback.from_user.id)
-    await dialog_manager.switch_to(GetTaskMenu.ENTER_DAY)
+    subject = item_id
+    data = await set_data(dialog_manager, subject, dialog_manager.event.from_user.id)
+    if data:
+        dialog_manager.dialog_data.update(data)
+        await dialog_manager.switch_to(GetTaskMenu.ENTER_DAY)
+    else:
+        await callback.message.answer("Нет задания на ближайшие уроки")
+        await dialog_manager.done()
 
 async def getter_subject(dialog_manager: DialogManager, **kwargs):
     data = dialog_manager.dialog_data
+    user_id = dialog_manager.event.from_user.id
+    user_class_id = await db.user.get_user_class_id(user_id)
+    all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)
+    data["subjects_for_page"] = [[subject] for subject in all_subjects_in_schedule]
     return data
 
 async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -116,6 +116,8 @@ async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_
     await dialog_manager.done()
 
 async def getter_day(dialog_manager: DialogManager, **kwargs):
+    if dialog_manager.start_data:
+        dialog_manager.dialog_data.update(dialog_manager.start_data)
     data = dialog_manager.dialog_data
     data["next_lesson"] = Week.days_of_week_dict[data["day_of_next_lesson"]][1]
     data["through_lesson"] = Week.days_of_week_dict[data["day_of_through_lesson"]][1]
@@ -123,18 +125,10 @@ async def getter_day(dialog_manager: DialogManager, **kwargs):
 
 get_task_menu = Dialog(
     Window(
-        Format(
-            "Выдать домашнее задание?\n"
-        ),
-        Column(
-            Button(text=Const("Да"), id="ask", on_click=on_ask_btn),
-            Cancel(text=Const("Нет")),
-        ),
-        state=GetTaskMenu.ASK_ABOUT_SENDING_HOMEWORK
-    ),
-    Window(
         Const(
-            "Выбирите предмет:"
+            "Выбирите предмет:\n\n"
+            "П.С. Вы можете написать предмет\n"
+            "и получите задание не вызывая каманду."
         ),
         Group(
             Select(
@@ -143,12 +137,10 @@ get_task_menu = Dialog(
                 item_id_getter=operator.itemgetter(0),
                 items="subjects_for_page",
                 on_click=on_subject_selected,
-                when="page"
             ),
             width=4,
         ),
         Column(
-            # Button(text=Const("Назад"), id="back", on_click=back_btn),
             Cancel(text=Const("Отмена")), 
         ),      
         state=GetTaskMenu.ENTER_SUBJECT,
