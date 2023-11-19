@@ -140,7 +140,7 @@ class Commands:
     
     @classmethod
     async def set_default_commands_for_user(cls, bot: Bot, user_id: int):
-        await cls._set_commands_for_user(bot, bot_commands, user_id)
+        await cls._set_commands_for_user(bot, bot_commands, user_id, message=True)
 
 
     @staticmethod
@@ -162,5 +162,12 @@ class Commands:
         return [value for value in list1 if not value in list2]
 
     @staticmethod
-    async def _set_commands_for_user(bot: Bot, commands: list, user_id: int):
-        await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=user_id))
+    async def _set_commands_for_user(bot: Bot, commands: list, user_id: int, message: bool = False):
+        try:
+            await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=user_id))
+            return True
+        except Exception as e:
+            if message:
+                logger = logging.getLogger("app")
+                logger.setLevel(logging.INFO)
+                logger.info(f"Не получилось установить меню для {user_id=}")
