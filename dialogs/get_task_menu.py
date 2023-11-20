@@ -106,13 +106,10 @@ async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_man
         
 async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
-    data["day"] = data["day_of_through_lesson"]
-    if not (await is_day_next_week(data["day_of_next_lesson"], data["day"]) and
-            data["day_of_next_lesson"] == data["day"]):
-        data["week"] = await get_number_week(data, data["day"])
-    else:
-        next_week = await get_next_week()
-        data["week"] = await get_number_week(data, data["day"], next_week)
+    tasks = data["tasks_for_through_lesson"]
+    bot = MyBot().bot
+    for group, message_id, author_id in tasks:
+        await bot.forward_message(callback.from_user.id, author_id, message_id)
     await dialog_manager.done()
 
 async def getter_day(dialog_manager: DialogManager, **kwargs):
