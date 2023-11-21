@@ -47,6 +47,46 @@ class Task():
                     (?, ?, ?, ?, ?, ?)""", (day, week, subject, group, message_id, author_id))
             return True
     
+    async def hide_task(self,
+                        class_id: int,
+                        message_id: int,
+                        author_id: int,
+                        hide_by: int,
+                        hide_date: str):
+        """
+        Скрывает задание.
+        Если не существует класса, то вернёт -1.
+        Если пользователя нет в бд, то возращает -2.
+        Если задания нет в бд или уже удалено, то возращает -3.
+        Если всё успешно, то вернёт True.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+        
+        # Проверка на существование пользователя в бд.
+        if not await self._check.check_existence_of_user(hide_by):
+            return -2
+    
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            await db_class.cursor.execute("""UPDATE tasks 
+                                          SET 
+                                          hide_date=?, 
+                                          hide_by=? 
+                                          WHERE 
+                                          message_id=? AND 
+                                          author_id=? AND 
+                                          hide_date is NULL AND 
+                                          hide_by is NULL""", (hide_date, hide_by, message_id, author_id))
+            result = await db_class.cursor.execute("SELECT changes()")
+            changes = (await result.fetchone())[0]
+            # Проверка на существование задания в бд.
+            if changes==0:
+                return -3
+            return True
+    
     async def get_task(self,
                        class_id: int, 
                        day: int, 

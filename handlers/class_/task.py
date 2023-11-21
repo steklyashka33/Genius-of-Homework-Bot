@@ -1,3 +1,4 @@
+import datetime
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -29,6 +30,15 @@ async def command_add_task(message: Message, dialog_manager: DialogManager):
 async def command_add_task(message: Message, dialog_manager: DialogManager):
     # Старт диалога для записи рассписания.
     await dialog_manager.start(GetTaskMenu.ENTER_SUBJECT)
+
+
+@task_router.message(DoesUserHaveRights(Roles.EDITOR), Command("deletetask"))
+async def command_add_task(message: Message, dialog_manager: DialogManager):
+    today = datetime.datetime.today()
+    dt = today.strftime("%Y-%m-%d-%H.%M.%S")
+    await db.task.hide_task(1, 350, 1952549522, 1952549522, dt)
+    # Старт диалога для записи рассписания.
+    # await dialog_manager.start(GetTaskMenu.ENTER_SUBJECT)
 
 
 @task_router.message(DoesUserHaveRights(Roles.VIEWER), IsSubject())

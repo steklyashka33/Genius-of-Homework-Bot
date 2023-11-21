@@ -59,10 +59,10 @@ class_commands = {
         ),
     ],
     Roles.EDITOR: [
-        # BotCommand(
-        #     command="",
-        #     description=""
-        # ),
+        BotCommand(
+            command="deletetask",
+            description="Удалить задание"
+        ),
     ],
     Roles.ADMIN: [
         # BotCommand(
@@ -72,18 +72,19 @@ class_commands = {
     ],
     Roles.OWNER: [
         BotCommand(
-            command="changeschedule",
-            description="Изменить расписание на неделю"
-        ),
-        BotCommand(
-            command="changedayschedule",
-            description="Изменить расписание на день"
+            command="schedulemanagement",
+            description="Управление расписанием"
         ),
         # BotCommand(
         #     command="",
         #     description=""
         # ),
     ],
+}
+
+schedule_commands = {
+    "changeschedule": "Изменить расписание на неделю",
+    "changedayschedule": "Изменить расписание на день"
 }
 
 # create logger
@@ -95,6 +96,11 @@ class Commands:
     async def set_commands(cls, bot: Bot):
         await cls.set_bot_commands(bot)
         await cls.set_bot_admin_and_class_commands(bot)
+    
+    @classmethod
+    async def set_commands_for_user(cls, bot: Bot, user_id: int):
+        await cls.set_default_commands_for_user(bot, user_id)
+        await cls.set_bot_admin_and_class_commands(bot, user_id)
 
     @classmethod
     async def set_bot_commands(cls, bot: Bot):

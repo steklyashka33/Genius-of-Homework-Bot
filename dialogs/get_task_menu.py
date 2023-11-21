@@ -46,8 +46,11 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
 
     now = dt.now()
     current_day = now.isoweekday()
+    yesterday = day if (day:=current_day-1) else 7
+    is_lesson_today = await db.task.get_next_lesson(user_class_id, yesterday, subject) == current_day
     data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
     data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
+    week_of_today_lesson = now.isocalendar()[1]
     week_of_next_lesson = await get_number_week(data, data["day_of_next_lesson"])
     if not (await is_day_next_week(data["day_of_next_lesson"], data["day_of_through_lesson"]) and
             data["day_of_next_lesson"] == data["day_of_through_lesson"]):
@@ -72,7 +75,16 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
         data["through_lesson_show"] = False
         data["no_through_lesson"] = True
     
-    if not(tasks_for_next_lesson or tasks_for_through_lesson):
+    if is_lesson_today:
+        data["tasks_for_today_lesson"] = tasks_for_today_lesson = await db.task.get_task(user_class_id, current_day, week_of_today_lesson, subject)
+        if tasks_for_today_lesson:
+            data["today_lesson_show"] = True
+            data["no_today_lesson"] = False
+        else:
+            data["today_lesson_show"] = False
+            data["no_today_lesson"] = True
+    
+    if not(is_lesson_today or tasks_for_next_lesson or tasks_for_through_lesson):
         return 
     return data
 
@@ -95,6 +107,14 @@ async def getter_subject(dialog_manager: DialogManager, **kwargs):
     all_subjects_in_schedule = await db.schedule.get_all_subjects(user_class_id)
     data["subjects_for_page"] = [[subject] for subject in all_subjects_in_schedule]
     return data
+
+async def on_today_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    data = dialog_manager.dialog_data
+    tasks = data["tasks_for_today_lesson"]
+    bot = MyBot().bot
+    for group, message_id, author_id in tasks:
+        await bot.forward_message(callback.from_user.id, author_id, message_id)
+    await dialog_manager.done()
 
 async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
@@ -148,6 +168,10 @@ get_task_menu = Dialog(
             "Выберите, на какой урок вам нужно задание.\n"
         ),
         Const(
+            "Нет задания на сегодня.\n", 
+            when="no_today_lesson"
+        ),
+        Const(
             "Нет задания на следующий урок.\n", 
             when="no_next_lesson"
         ),
@@ -156,6 +180,12 @@ get_task_menu = Dialog(
             when="no_through_lesson"
         ),
         Column(
+            Button(
+                Format("На сегодня"),
+                id="today_lesson", 
+                on_click=on_today_lesson_btn,
+                when="today_lesson_show"
+            ),
             Button(
                 Format("На следующий урок в {next_lesson}"),
                 id="next_lesson", 

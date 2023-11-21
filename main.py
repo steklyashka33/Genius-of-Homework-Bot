@@ -12,6 +12,7 @@ from handlers.bot.menu import menu_router
 from handlers.bot.user import user_router
 from handlers.class_.class_control import class_control_router
 from handlers.class_.schedule import schedule_router
+from handlers.class_.helper import helper_router
 from handlers.class_.task import task_router
 
 from middlewares.add_user_id_to_database import add_user_id_to_database_router
@@ -50,6 +51,7 @@ async def main() -> None:
         user_router,
         class_control_router,
         schedule_router,
+        helper_router,
         bot_admin_router,
         task_router
     )
