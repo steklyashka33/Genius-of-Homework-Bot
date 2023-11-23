@@ -2,7 +2,7 @@ from os import getenv
 from dotenv import load_dotenv
 
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, FSInputFile
 
 from db_manager import DBManager
@@ -43,6 +43,29 @@ async def getdatabase_cmd(message: Message):
     for class_id in all_class_ids:
         class_db_file = FSInputFile(CLASS_PATH.format(class_id))
         await message.answer_document(class_db_file)
+        
+@bot_admin_router.message(IsAdmin(), Command("adduser"))
+async def getdatabase_cmd(message: Message, command: CommandObject):
+    commands = command.args
+    user_id = message.from_user.id
+    user_class_id = await db.user.get_user_class_id(user_id)
+    if user_class_id is None:
+        await message.answer("Вы не состоите ни в одном классе.")
+    elif not commands:
+        await message.answer("Введите user_id вместе с вызовом команды.")
+    else:
+        try:
+            add_user_id = int(commands)
+            await db.user.add_user_to_database(add_user_id)
+            result = await db.class_.add_user_to_class(add_user_id, user_class_id, user_id)
+            if result is True:
+                await message.answer("Пользователь успешно добавлен.")
+            elif result == -3:
+                await message.answer("Пользователь уже в вашем классе.")
+            else:
+                await message.answer("Произошла ошибка.")
+        except:
+            await message.answer("user_id должен состоять только из цифр.")
         
 @bot_admin_router.message(IsAdmin(), Command("logout"))
 async def logout_cmd(message: Message):

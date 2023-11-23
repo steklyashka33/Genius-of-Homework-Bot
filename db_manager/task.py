@@ -57,7 +57,8 @@ class Task():
         Скрывает задание.
         Если не существует класса, то вернёт -1.
         Если пользователя нет в бд, то возращает -2.
-        Если задания нет в бд или уже удалено, то возращает -3.
+        Если автора нет в бд, то возращает -3.
+        Если задания нет в бд или уже удалено/скрыто, то возращает -4.
         Если всё успешно, то вернёт True.
         """
 
@@ -68,6 +69,10 @@ class Task():
         # Проверка на существование пользователя в бд.
         if not await self._check.check_existence_of_user(hide_by):
             return -2
+        
+        # Проверка на существование автора в бд.
+        if not await self._check.check_existence_of_user(author_id):
+            return -3
     
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
@@ -82,11 +87,44 @@ class Task():
                                           hide_by is NULL""", (hide_date, hide_by, message_id, author_id))
             result = await db_class.cursor.execute("SELECT changes()")
             changes = (await result.fetchone())[0]
-            # Проверка на существование задания в бд.
+            # Проверка на скрытия задания в бд.
+            if changes==0:
+                return -4
+            return True
+    
+    async def delete_task(self,
+                          class_id: int,
+                          message_id: int,
+                          author_id: int):
+        """
+        Скрывает задание.
+        Если не существует класса, то вернёт -1.
+        Если автора нет в бд, то возращает -2.
+        Если задания нет в бд или уже удалено, то возращает -3.
+        Если всё успешно, то вернёт True.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+        
+        # Проверка на существование автора в бд.
+        if not await self._check.check_existence_of_user(author_id):
+            return -2
+    
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            await db_class.cursor.execute("""DELETE FROM tasks 
+                                          WHERE 
+                                          message_id=? AND 
+                                          author_id=?;""", (message_id, author_id))
+            result = await db_class.cursor.execute("SELECT changes()")
+            changes = (await result.fetchone())[0]
+            # Проверка на удаления задания в бд.
             if changes==0:
                 return -3
             return True
-    
+
     async def get_task(self,
                        class_id: int, 
                        day: int, 

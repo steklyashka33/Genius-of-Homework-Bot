@@ -156,7 +156,7 @@ class Class():
         async with ConnectToClass(user_class_id) as db_class:
             # Получение роли пользователя.
             await db_class.cursor.execute("""SELECT role FROM "class_users" WHERE id = ?;""", (user_id, ))
-            user_role = (await db_class.cursor.fetchone())[0]
+            user_role = role[0] if (role := await db_class.cursor.fetchone()) else 0
         
         return user_role
 

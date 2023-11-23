@@ -15,7 +15,7 @@ from handlers.class_.schedule import schedule_router
 from handlers.class_.helper import helper_router
 from handlers.class_.task import task_router
 
-from middlewares.add_user_id_to_database import add_user_id_to_database_router
+# from middlewares.add_user_id_to_database import add_user_id_to_database_router
 
 from dialogs.create_class_menu import create_class_menu
 from dialogs.schedule_recording_menu import schedule_recording_menu
@@ -41,7 +41,7 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
     # Register all the routers from handlers package
     dp.include_routers(
-        add_user_id_to_database_router,
+        # add_user_id_to_database_router,
         start_router,
         create_class_menu,
         schedule_recording_menu,

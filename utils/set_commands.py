@@ -37,6 +37,10 @@ admin_commands = [
         description="Получить базу данных"
     ),
     BotCommand(
+        command="adduser",
+        description="Принудительно добавить пользователя в класс."
+    ),
+    BotCommand(
         command="logout",
         description="Отбирает ваши права администратора"
     ),

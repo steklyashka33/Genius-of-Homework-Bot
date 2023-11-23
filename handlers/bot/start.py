@@ -2,7 +2,10 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
+from db_manager import DBManager
+
 start_router = Router()
+db = DBManager()
 
 
 @start_router.message(CommandStart())
@@ -20,3 +23,4 @@ async def command_start(message: Message) -> None:
 Я создан, чтобы подсказывать тебе домашние задание.
 Чтобы продолжить нажми /menu"""
     await message.answer(text, parse_mode="Markdown")
+    await db.user.add_user_to_database(message.from_user.id)

@@ -4,6 +4,7 @@ from datetime import timedelta as td, datetime as dt
 
 from aiogram.types import Message, ContentType, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.exceptions import TelegramBadRequest
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.text import Format, Const
@@ -46,8 +47,6 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
 
     now = dt.now()
     current_day = now.isoweekday()
-    yesterday = day if (day:=current_day-1) else 7
-    is_lesson_today = await db.task.get_next_lesson(user_class_id, yesterday, subject) == current_day
     data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
     data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
     week_of_today_lesson = now.isocalendar()[1]
@@ -75,16 +74,15 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
         data["through_lesson_show"] = False
         data["no_through_lesson"] = True
     
-    if is_lesson_today:
-        data["tasks_for_today_lesson"] = tasks_for_today_lesson = await db.task.get_task(user_class_id, current_day, week_of_today_lesson, subject)
-        if tasks_for_today_lesson:
-            data["today_lesson_show"] = True
-            data["no_today_lesson"] = False
-        else:
-            data["today_lesson_show"] = False
-            data["no_today_lesson"] = True
+    data["tasks_for_today_lesson"] = tasks_for_today_lesson = await db.task.get_task(user_class_id, current_day, week_of_today_lesson, subject)
+    if tasks_for_today_lesson:
+        data["today_lesson_show"] = True
+        data["no_today_lesson"] = False
+    else:
+        data["today_lesson_show"] = False
+        data["no_today_lesson"] = True
     
-    if not(is_lesson_today or tasks_for_next_lesson or tasks_for_through_lesson):
+    if not(tasks_for_today_lesson or tasks_for_next_lesson or tasks_for_through_lesson):
         return 
     return data
 
@@ -120,8 +118,18 @@ async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_man
     data = dialog_manager.dialog_data
     tasks = data["tasks_for_next_lesson"]
     bot = MyBot().bot
+    user_id = callback.from_user.id
+    user_class_id = await db.user.get_user_class_id(user_id)
+
     for group, message_id, author_id in tasks:
-        await bot.forward_message(callback.from_user.id, author_id, message_id)
+        try:
+            await bot.forward_message(callback.from_user.id, author_id, message_id)
+        except TelegramBadRequest as e:
+            if e.message == "Bad Request: message to forward not found":
+                await db.task.delete_task(user_class_id, message_id, author_id)
+                await callback.message.answer("Задание удалено.")
+            else:
+                await callback.message.answer("Неизвестная ошибка.")
     await dialog_manager.done()
         
 async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
