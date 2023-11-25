@@ -58,8 +58,7 @@ class Task():
                         class_id: int,
                         message_id: int,
                         author_id: int,
-                        hide_by: int,
-                        hide_date: datetime):
+                        hide_by: int):
         """
         Скрывает задание.
         Если не существует класса, то вернёт -1.
@@ -82,7 +81,7 @@ class Task():
             return -3
     
         # Преобразование datatime в строку.
-        strdate = hide_date.strftime(FORMATED)
+        strdate = datetime.now().strftime(FORMATED)
     
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
@@ -107,7 +106,7 @@ class Task():
                           message_id: int,
                           author_id: int):
         """
-        Скрывает задание.
+        Удаляет задание.
         Если не существует класса, то вернёт -1.
         Если автора нет в бд, то возращает -2.
         Если задания нет в бд или уже удалено, то возращает -3.

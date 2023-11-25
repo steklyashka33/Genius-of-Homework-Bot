@@ -36,6 +36,8 @@ async def task_message_input_filter(message: Message, message_input: MessageInpu
         task = tasks[0]
         day, week, subject, *_ = task
         data["subject"] = subject
+        data["date"] = date.strftime("%d.%m.%Y")
+        data["task"] = task
         await dialog_manager.switch_to(DeleteTaskMenu.CONFIRMATION)
         return True
     else:
@@ -52,7 +54,7 @@ async def on_confirm_delete_task_btn(callback: CallbackQuery, button: Button, di
     user_id = callback.from_user.id
     user_class_id = await db.user.get_user_class_id(author_id)
 
-    await db.task.hide_task(user_class_id, message_id, author_id, user_id, date)
+    await db.task.hide_task(user_class_id, message_id, author_id, user_id)
     await callback.message.answer("Сообщение удалено.")
     await dialog_manager.done()
 
@@ -73,9 +75,10 @@ delete_task_menu = Dialog(
         Format(
             "Удалить задание?\n\n"
             "Предмет: {subject}\n"
+            "Дата: {date}"
         ),
         Column(
-            Button(text=Const("Сохранить"), id="confirm_task", on_click=on_confirm_delete_task_btn),
+            Button(text=Const("Удалить"), id="confirm_task", on_click=on_confirm_delete_task_btn),
             Cancel(text=Const("Отмена")),
         ),
         state=DeleteTaskMenu.CONFIRMATION,
