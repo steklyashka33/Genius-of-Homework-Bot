@@ -12,7 +12,8 @@ class IsSubject(Filter):
     async def __call__(self, message: Message) -> bool:
         text = message.text or message.caption
         all_subjects = sum(list(Subjects.SUBJECTS_NAMES.values()), [])
-        for subject in all_subjects:
-            if text.lower() == subject.lower():
-                return True
+        if not text is None:
+            for subject in all_subjects:
+                if text.lower() == subject.lower():
+                    return True
         return False

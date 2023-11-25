@@ -11,7 +11,7 @@ from filters.is_admin import IsAdmin
 from utils.set_commands import Commands
 from utils.get_bot import MyBot
 
-from configs.config import DB_PATH, CLASS_PATH
+from configs.config import DB_PATH, CLASS_PATH, FORMATED
 
 # Load .env file
 load_dotenv()
@@ -49,6 +49,7 @@ async def getdatabase_cmd(message: Message, command: CommandObject):
     commands = command.args
     user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)
+    
     if user_class_id is None:
         await message.answer("Вы не состоите ни в одном классе.")
     elif not commands:

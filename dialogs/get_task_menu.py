@@ -106,38 +106,41 @@ async def getter_subject(dialog_manager: DialogManager, **kwargs):
     data["subjects_for_page"] = [[subject] for subject in all_subjects_in_schedule]
     return data
 
+async def forward_message(message: Message, author_id, message_id):
+    bot = MyBot().bot
+    user_id = message.from_user.id
+    user_class_id = await db.user.get_user_class_id(user_id)
+    try:
+        await bot.forward_message(user_id, author_id, message_id)
+    except TelegramBadRequest as e:
+        if e.message == "Bad Request: message to forward not found":
+            await db.task.delete_task(user_class_id, message_id, author_id)
+            await message.answer("Задание удалено.")
+        else:
+            await message.answer("Неизвестная ошибка.")
+
 async def on_today_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     tasks = data["tasks_for_today_lesson"]
-    bot = MyBot().bot
-    for group, message_id, author_id in tasks:
-        await bot.forward_message(callback.from_user.id, author_id, message_id)
+
+    for group, message_id, author_id, date in tasks:
+        await forward_message(callback.message, author_id, message_id)
     await dialog_manager.done()
 
 async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     tasks = data["tasks_for_next_lesson"]
-    bot = MyBot().bot
-    user_id = callback.from_user.id
-    user_class_id = await db.user.get_user_class_id(user_id)
 
-    for group, message_id, author_id in tasks:
-        try:
-            await bot.forward_message(callback.from_user.id, author_id, message_id)
-        except TelegramBadRequest as e:
-            if e.message == "Bad Request: message to forward not found":
-                await db.task.delete_task(user_class_id, message_id, author_id)
-                await callback.message.answer("Задание удалено.")
-            else:
-                await callback.message.answer("Неизвестная ошибка.")
+    for group, message_id, author_id, date in tasks:
+        await forward_message(callback.message, author_id, message_id)
     await dialog_manager.done()
         
 async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     tasks = data["tasks_for_through_lesson"]
-    bot = MyBot().bot
-    for group, message_id, author_id in tasks:
-        await bot.forward_message(callback.from_user.id, author_id, message_id)
+    
+    for group, message_id, author_id, date in tasks:
+        await forward_message(callback.message, author_id, message_id)
     await dialog_manager.done()
 
 async def getter_day(dialog_manager: DialogManager, **kwargs):

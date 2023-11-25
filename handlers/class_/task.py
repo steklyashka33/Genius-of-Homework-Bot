@@ -1,5 +1,4 @@
-import datetime
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -9,9 +8,11 @@ from db_manager import DBManager
 
 from dialogs.add_task_menu import AddTaskMenu
 from dialogs.get_task_menu import GetTaskMenu, set_data
+from dialogs.delete_task_menu import DeleteTaskMenu
 
 from configs.roles_config import Roles
 from configs.subjects_config import Subjects
+from configs.config import FORMATED
 
 from filters.does_user_have_rights import DoesUserHaveRights
 from filters.is_subject import IsSubject
@@ -34,14 +35,11 @@ async def command_add_task(message: Message, dialog_manager: DialogManager):
 
 @task_router.message(DoesUserHaveRights(Roles.EDITOR), Command("deletetask"))
 async def command_add_task(message: Message, dialog_manager: DialogManager):
-    today = datetime.datetime.today()
-    dt = today.strftime("%Y-%m-%d-%H.%M.%S")
-    await db.task.hide_task(1, 350, 1952549522, 1952549522, dt)
     # Старт диалога для записи рассписания.
-    # await dialog_manager.start(GetTaskMenu.ENTER_SUBJECT)
+    await dialog_manager.start(DeleteTaskMenu.ENTER_TASK)
 
 
-@task_router.message(DoesUserHaveRights(Roles.VIEWER), IsSubject())
+@task_router.message(DoesUserHaveRights(Roles.VIEWER), IsSubject(), F.text)
 async def subject_message_handler(message: Message, dialog_manager: DialogManager):
     user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)

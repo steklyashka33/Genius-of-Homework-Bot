@@ -1,3 +1,6 @@
+from datetime import datetime
+from configs.config import FORMATED
+
 from .connect import ConnectToDB, ConnectToClass
 from .check import Check
 
@@ -13,7 +16,8 @@ class Task():
                        subject: str, 
                        group: str,
                        message_id: int, 
-                       author_id: int):
+                       author_id: int,
+                       date: datetime):
         """
         Добавляет задание.
         Если не существует класса, то вернёт -1.
@@ -39,12 +43,15 @@ class Task():
         if not await self._check.check_for_existence_of_subject(subject):
             return -4
     
+        # Преобразование datatime в строку.
+        strdate = date.strftime(FORMATED)
+
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             await db_class.cursor.execute("""INSERT INTO "tasks"
-                    (day, week, subject, subject_group, message_id, author_id)
+                    (day, week, subject, subject_group, message_id, author_id, date)
                     VALUES
-                    (?, ?, ?, ?, ?, ?)""", (day, week, subject, group, message_id, author_id))
+                    (?, ?, ?, ?, ?, ?, ?)""", (day, week, subject, group, message_id, author_id, strdate))
             return True
     
     async def hide_task(self,
@@ -52,7 +59,7 @@ class Task():
                         message_id: int,
                         author_id: int,
                         hide_by: int,
-                        hide_date: str):
+                        hide_date: datetime):
         """
         Скрывает задание.
         Если не существует класса, то вернёт -1.
@@ -74,6 +81,9 @@ class Task():
         if not await self._check.check_existence_of_user(author_id):
             return -3
     
+        # Преобразование datatime в строку.
+        strdate = hide_date.strftime(FORMATED)
+    
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             await db_class.cursor.execute("""UPDATE tasks 
@@ -84,7 +94,7 @@ class Task():
                                           message_id=? AND 
                                           author_id=? AND 
                                           hide_date is NULL AND 
-                                          hide_by is NULL""", (hide_date, hide_by, message_id, author_id))
+                                          hide_by is NULL""", (strdate, hide_by, message_id, author_id))
             result = await db_class.cursor.execute("SELECT changes()")
             changes = (await result.fetchone())[0]
             # Проверка на скрытия задания в бд.
@@ -131,7 +141,7 @@ class Task():
                        week: int,
                        subject: str):
         """
-        Возвращает subject_group, messange_id, author_id задания.
+        Возвращает subject_group, messange_id, author_id, date задания.
         Если не существует класса, то вернёт -1.
         Если day имеет значение не 1-7, то вернёт -2.
         Если не существует предмета, то вернёт -3.
@@ -152,7 +162,7 @@ class Task():
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
             # Получение задания на нужный день.
-            await db_class.cursor.execute("""SELECT subject_group, message_id, author_id FROM tasks 
+            await db_class.cursor.execute("""SELECT subject_group, message_id, author_id, date FROM tasks 
                                           WHERE 
                                           day=? AND 
                                           week=? AND 
@@ -160,7 +170,42 @@ class Task():
                                           hide_date is NULL 
                                           AND hide_by is NULL""", (day, week, subject))
             result = await db_class.cursor.fetchall()
-            return result
+            data = []
+            for *other, date in result:
+                data.append([*other, datetime.strptime(date, FORMATED)])
+            return data
+
+    async def get_task_by_date(self,
+                       class_id: int, 
+                       date: datetime):
+        """
+        Возвращает day, week, subject, subject_group, messange_id, author_id, date задания по дате.
+        Если не существует класса, то вернёт -1.
+        Если автора нет в бд, то возращает -2.
+        """
+
+        # Проверка на существование класса.
+        if not await self._check.check_existence_of_class(class_id):
+            return -1
+    
+        # Преобразование datatime в строку.
+        strdate = date.strftime(FORMATED)
+    
+        # Подключение к классу.
+        async with ConnectToClass(class_id) as db_class:
+            # Получение задания на нужный день.
+            await db_class.cursor.execute("""SELECT * FROM tasks 
+                                          WHERE 
+                                          date=? AND 
+                                          hide_date is NULL 
+                                          AND hide_by is NULL""", (strdate,))
+            result = await db_class.cursor.fetchall()
+            if not result:
+                return
+            data = []
+            for _, *other, date, _, _ in result:
+                data.append([*other, datetime.strptime(date, FORMATED)])
+            return data
 
     async def get_next_lesson(self, class_id: int, current_day: int, subject: str):
         """

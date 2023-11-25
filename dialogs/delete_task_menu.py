@@ -1,6 +1,5 @@
-import operator
+from datetime import datetime
 from typing import Any
-from datetime import timedelta as td, datetime as dt
 
 from aiogram.types import Message, ContentType, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
@@ -8,80 +7,78 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.kbd import Button, Cancel, Start, Next, Back, Select, Group, Row, Column
-from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.input import MessageInput
 
-from configs.week_config import Week
-from configs.subjects_config import Subjects
+from dialogs.get_task_menu import forward_message
+
 from db_manager import DBManager
-from utils.get_bot import MyBot
 
 class DeleteTaskMenu(StatesGroup):
-    ENTER_HOMEWORK = State()
-    ENTER_DAY = State()
+    ENTER_TASK = State()
+    CONFIRMATION = State()
 
 db = DBManager()
 
+async def task_message_input_filter(message: Message, message_input: MessageInput, dialog_manager: DialogManager, **kwargs):
+    data = dialog_manager.dialog_data
+    if not message.forward_date is None:
+        date = message.forward_date
+        user_id = message.from_user.id
+        user_class_id = await db.user.get_user_class_id(user_id)
 
-get_task_menu = Dialog(
+        tasks = await db.task.get_task_by_date(user_class_id, date)
+        if len(tasks) != 1:
+            ...
+            for *_, group, message_id, author_id, date, _, _ in tasks:
+                await forward_message(message, author_id, message_id)
+            message.answer("Найдено более одного совпадения.")
+            return
+        task = tasks[0]
+        day, week, subject, *_ = task
+        data["subject"] = subject
+        await dialog_manager.switch_to(DeleteTaskMenu.CONFIRMATION)
+        return True
+    else:
+        message.answer("Задание не найдено.")
+
+async def getter(dialog_manager: DialogManager, **kwargs):
+    data = dialog_manager.dialog_data
+    return data
+
+async def on_confirm_delete_task_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    data = dialog_manager.dialog_data
+    task = data["task"]
+    *_, message_id, author_id, date = task
+    user_id = callback.from_user.id
+    user_class_id = await db.user.get_user_class_id(author_id)
+
+    await db.task.hide_task(user_class_id, message_id, author_id, user_id, date)
+    await callback.message.answer("Сообщение удалено.")
+    await dialog_manager.done()
+
+delete_task_menu = Dialog(
     Window(
         Const(
             "Перешлите задание, \nкоторое вы хотите удалить:\n\n"
         ),
-        Group(
-            Select(
-                Format("{item[0]}"),
-                id="subjects_page",
-                item_id_getter=operator.itemgetter(0),
-                items="subjects_for_page",
-                on_click=on_subject_selected,
-            ),
-            width=4,
-        ),
         Column(
             Cancel(text=Const("Отмена")), 
-        ),      
-        state=GetTaskMenu.ENTER_SUBJECT,
-        getter=getter_subject
+        ),
+        MessageInput(task_message_input_filter, content_types=[
+            ContentType.TEXT, ContentType.DOCUMENT, ContentType.AUDIO, ContentType.PHOTO, ContentType.VIDEO
+            ]),   
+        state=DeleteTaskMenu.ENTER_TASK
     ),
     Window(
-        Const(
-            "Выберите, на какой урок вам нужно задание.\n"
-        ),
-        Const(
-            "Нет задания на сегодня.\n", 
-            when="no_today_lesson"
-        ),
-        Const(
-            "Нет задания на следующий урок.\n", 
-            when="no_next_lesson"
-        ),
-        Const(
-            "Нет задания через урок.\n", 
-            when="no_through_lesson"
+        Format(
+            "Удалить задание?\n\n"
+            "Предмет: {subject}\n"
         ),
         Column(
-            Button(
-                Format("На сегодня"),
-                id="today_lesson", 
-                on_click=on_today_lesson_btn,
-                when="today_lesson_show"
-            ),
-            Button(
-                Format("На следующий урок в {next_lesson}"),
-                id="next_lesson", 
-                on_click=on_next_lesson_btn,
-                when="next_lesson_show"
-            ),
-            Button(
-                Format("Через урок в {through_lesson}"),
-                id="through_lesson", 
-                on_click=on_through_lesson_btn,
-                when="through_lesson_show"
-            ),
+            Button(text=Const("Сохранить"), id="confirm_task", on_click=on_confirm_delete_task_btn),
             Cancel(text=Const("Отмена")),
         ),
-        state=GetTaskMenu.ENTER_DAY,
-        getter=getter_day
+        state=DeleteTaskMenu.CONFIRMATION,
+        getter=getter
     ),
 )

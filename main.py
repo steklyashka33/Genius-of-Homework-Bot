@@ -21,6 +21,7 @@ from dialogs.create_class_menu import create_class_menu
 from dialogs.schedule_recording_menu import schedule_recording_menu
 from dialogs.add_task_menu import add_task_menu
 from dialogs.get_task_menu import get_task_menu
+from dialogs.delete_task_menu import delete_task_menu
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
@@ -47,6 +48,7 @@ async def main() -> None:
         schedule_recording_menu,
         add_task_menu,
         get_task_menu,
+        delete_task_menu,
         menu_router,
         user_router,
         class_control_router,

@@ -1,3 +1,4 @@
+import datetime
 import operator
 from typing import Any
 from datetime import timedelta as td, datetime as dt
@@ -13,6 +14,8 @@ from aiogram_dialog.widgets.input import MessageInput
 
 from configs.week_config import Week
 from configs.subjects_config import Subjects
+from configs.config import FORMATED
+
 from dialogs.schedule_recording_menu import set_subjects_for_pages_and_change_btn
 from db_manager import DBManager
 
@@ -73,16 +76,14 @@ async def set_data(message: Message, dialog_manager: DialogManager):
     await set_subjects_for_pages_and_change_btn(data, all_subjects_in_schedule)
     data["page1"] = True
     data["page2"] = False
-    data["task_id"] = message.message_id
+    data["message_id"] = message.message_id
+    data["message_date"] = message.date
 
 async def task_message_input_filter(message: Message, message_input: MessageInput, dialog_manager: DialogManager, **kwargs):
     window = await get_next_window(message, dialog_manager)
     await dialog_manager.switch_to(window)
     await set_data(message, dialog_manager)
     return True
-
-async def back_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    data = dialog_manager.dialog_data
 
 async def getter(dialog_manager: DialogManager, **kwargs):
     data = dialog_manager.dialog_data
@@ -157,11 +158,12 @@ async def on_confirm_task_btn(callback: CallbackQuery, button: Button, dialog_ma
     week = data["week"]
     subject = data["subject"]
     group = data["group"]
-    message_id = data["task_id"]
+    message_id = data["message_id"]
+    message_date: datetime.datetime = data["message_date"]
     author_id = callback.from_user.id
-    class_id = await db.user.get_user_class_id(author_id)
+    author_class_id = await db.user.get_user_class_id(author_id)
 
-    await db.task.add_task(class_id, day, week, subject, group, message_id, author_id)
+    await db.task.add_task(author_class_id, day, week, subject, group, message_id, author_id, message_date)
     await callback.message.answer("Задание записано.")
     await dialog_manager.done()
 

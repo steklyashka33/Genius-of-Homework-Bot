@@ -99,6 +99,7 @@ class Models():
                 "subject_group"	TEXT,
                 "message_id"	INTEGER NOT NULL,
                 "author_id"	INTEGER NOT NULL,
+	            "date"  	DATE,
                 "hide_date"	DATE,
                 "hide_by"	INTEGER,
                 PRIMARY KEY("id" AUTOINCREMENT)
