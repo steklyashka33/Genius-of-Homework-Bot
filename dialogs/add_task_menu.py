@@ -1,7 +1,6 @@
-import datetime
 import operator
 from typing import Any
-from datetime import timedelta as td, datetime as dt
+from datetime import datetime, timedelta as td
 
 from aiogram.types import Message, ContentType, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
@@ -17,6 +16,8 @@ from configs.subjects_config import Subjects
 from configs.config import FORMATED
 
 from dialogs.schedule_recording_menu import set_subjects_for_pages_and_change_btn
+from utils.get_moscow_time import get_moscow_time_from_dt, get_moscow_time_now
+
 from db_manager import DBManager
 
 class AddTaskMenu(StatesGroup):
@@ -67,7 +68,7 @@ async def set_data(message: Message, dialog_manager: DialogManager):
             pass
         else:
             data["group"] = user_group
-            now = dt.now()
+            now = get_moscow_time_now()
             current_day = now.isoweekday()
             data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
             data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
@@ -77,7 +78,7 @@ async def set_data(message: Message, dialog_manager: DialogManager):
     data["page1"] = True
     data["page2"] = False
     data["message_id"] = message.message_id
-    data["message_date"] = message.date
+    data["message_date"] = get_moscow_time_from_dt(message.date)
 
 async def task_message_input_filter(message: Message, message_input: MessageInput, dialog_manager: DialogManager, **kwargs):
     window = await get_next_window(message, dialog_manager)
@@ -101,7 +102,7 @@ async def on_subject_selected(callback: CallbackQuery, widget: Any,
         await dialog_manager.switch_to(AddTaskMenu.ENTER_GROUP)
     else:
         data["group"] = user_group
-        now = dt.now()
+        now = get_moscow_time_now()
         current_day = now.isoweekday()
         data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
         data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
@@ -112,16 +113,16 @@ async def on_change_btn(callback: CallbackQuery, button: Button, dialog_manager:
     data["page1"] = not data["page1"]
     data["page2"] = not data["page2"]
 
-async def get_next_week(now: dt = None):
-    now = now if now else dt.now()
+async def get_next_week(now: datetime = None):
+    now = now if now else get_moscow_time_now()
     next_week = now + td(weeks=1)
     return next_week
 
 async def is_day_next_week(day: int, current_day: int):
     return day <= current_day
 
-async def set_number_week(data, day: int, now: dt = None):
-    now = now if now else dt.now()
+async def set_number_week(data, day: int, now: datetime = None):
+    now = now if now else get_moscow_time_now()
     current_day = now.isoweekday()
     if await is_day_next_week(day, current_day):
         next_week = await get_next_week(now)

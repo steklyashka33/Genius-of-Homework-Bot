@@ -1,6 +1,6 @@
 import operator
 from typing import Any
-from datetime import timedelta as td, datetime as dt
+from datetime import timedelta as td, datetime
 
 from aiogram.types import Message, ContentType, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
@@ -14,8 +14,11 @@ from aiogram_dialog.widgets.input import MessageInput
 
 from configs.week_config import Week
 from configs.subjects_config import Subjects
-from db_manager import DBManager
+
 from utils.get_bot import MyBot
+from utils.get_moscow_time import get_moscow_time_from_dt, get_moscow_time_now
+
+from db_manager import DBManager
 
 class GetTaskMenu(StatesGroup):
     ENTER_SUBJECT = State()
@@ -23,16 +26,16 @@ class GetTaskMenu(StatesGroup):
 
 db = DBManager()
 
-async def get_next_week(now: dt = None):
-    now = now if now else dt.now()
+async def get_next_week(now: datetime = None):
+    now = now if now else get_moscow_time_now()
     next_week = now + td(weeks=1)
     return next_week
 
 async def is_day_next_week(day: int, current_day: int):
     return day <= current_day
 
-async def get_number_week(data, day: int, now: dt = None):
-    now = now if now else dt.now()
+async def get_number_week(data, day: int, now: datetime = None):
+    now = now if now else get_moscow_time_now()
     current_day = now.isoweekday()
     if await is_day_next_week(day, current_day):
         next_week = await get_next_week(now)
@@ -45,7 +48,7 @@ async def set_data(dialog_manager: DialogManager, subject, user_id: int):
     data["subject"] = subject
     user_class_id = await db.user.get_user_class_id(user_id)
 
-    now = dt.now()
+    now = get_moscow_time_now()
     current_day = now.isoweekday()
     data["day_of_next_lesson"] = await db.task.get_next_lesson(user_class_id, current_day, subject)
     data["day_of_through_lesson"] = await db.task.get_next_lesson(user_class_id, data["day_of_next_lesson"], subject)
@@ -106,9 +109,8 @@ async def getter_subject(dialog_manager: DialogManager, **kwargs):
     data["subjects_for_page"] = [[subject] for subject in all_subjects_in_schedule]
     return data
 
-async def forward_message(message: Message, author_id, message_id):
+async def forward_message(message: Message, author_id, message_id, user_id):
     bot = MyBot().bot
-    user_id = message.from_user.id
     user_class_id = await db.user.get_user_class_id(user_id)
     try:
         await bot.forward_message(user_id, author_id, message_id)
@@ -124,7 +126,7 @@ async def on_today_lesson_btn(callback: CallbackQuery, button: Button, dialog_ma
     tasks = data["tasks_for_today_lesson"]
 
     for group, message_id, author_id, date in tasks:
-        await forward_message(callback.message, author_id, message_id)
+        await forward_message(callback.message, author_id, message_id, callback.from_user.id)
     await dialog_manager.done()
 
 async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -132,7 +134,7 @@ async def on_next_lesson_btn(callback: CallbackQuery, button: Button, dialog_man
     tasks = data["tasks_for_next_lesson"]
 
     for group, message_id, author_id, date in tasks:
-        await forward_message(callback.message, author_id, message_id)
+        await forward_message(callback.message, author_id, message_id, callback.from_user.id)
     await dialog_manager.done()
         
 async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -140,7 +142,7 @@ async def on_through_lesson_btn(callback: CallbackQuery, button: Button, dialog_
     tasks = data["tasks_for_through_lesson"]
     
     for group, message_id, author_id, date in tasks:
-        await forward_message(callback.message, author_id, message_id)
+        await forward_message(callback.message, author_id, message_id, callback.from_user.id)
     await dialog_manager.done()
 
 async def getter_day(dialog_manager: DialogManager, **kwargs):

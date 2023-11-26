@@ -30,7 +30,7 @@ async def task_message_input_filter(message: Message, message_input: MessageInpu
         if len(tasks) != 1:
             ...
             for *_, group, message_id, author_id, date, _, _ in tasks:
-                await forward_message(message, author_id, message_id)
+                await forward_message(message, author_id, message_id, user_id)
             message.answer("Найдено более одного совпадения.")
             return
         task = tasks[0]

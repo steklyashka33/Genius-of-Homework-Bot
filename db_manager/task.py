@@ -4,6 +4,8 @@ from configs.config import FORMATED
 from .connect import ConnectToDB, ConnectToClass
 from .check import Check
 
+from utils.get_moscow_time import get_moscow_time_from_dt, get_moscow_time_now
+
 
 class Task():
     def __init__(self) -> None:
@@ -81,7 +83,7 @@ class Task():
             return -3
     
         # Преобразование datatime в строку.
-        strdate = datetime.now().strftime(FORMATED)
+        strdate = get_moscow_time_now().strftime(FORMATED)
     
         # Подключение к классу.
         async with ConnectToClass(class_id) as db_class:
